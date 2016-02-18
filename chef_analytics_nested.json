@@ -1,0 +1,221 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Cloudformation Chef Analytics w/ Route53 Resources v1.0",
+  "Parameters": {
+    "HostedZone": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "must match a route53 hosted domain/zone"
+    },
+    "AnalyticsSubdomain": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "subdomain/prefix for chose hosted zone"
+    },
+    "HACookbookGit": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "Git Clone URI for Cookbook"
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Default": ""
+    },
+    "ImageId": {
+      "Type": "String",
+      "Default": ""
+    },
+    "KeyName": {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type" : "String"
+    },
+    "BastionSecurityGroup" : {
+      "Description" : "Select Security Group for SSH Access",
+      "Type": "String",
+      "Default": ""
+    },
+    "AnalyticsENI": {
+      "Description" : "Choose ENI to use",
+      "Type" : "String",
+      "Default": ""
+    },
+    "AccessKey": {
+      "Description" : "Enter User Access Key",
+      "Type" : "String",
+      "Default": ""
+    },
+    "SecretKey": {
+      "Description" : "Enter User Secret Key",
+      "Type" : "String",
+      "Default": ""
+    },
+    "VPC": {
+      "Description" : "Choose VPC to use",
+      "Type" : "String",
+      "Default": ""
+    },
+    "Subnet": {
+      "Description" : "Choose Subnet",
+      "Type" : "String",
+      "Default": ""
+    },
+    "InternalDNS": {
+      "Description" : "Enter Private DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "AnalyticsIP": {
+      "Description" : "Enter Private IP",
+      "Type" : "String",
+      "Default": ""
+    },
+    "AnalyticsENI": {
+      "Description" : "Enter Analytics ENI",
+      "Type" : "String",
+      "Default": ""
+    }
+},
+
+"Resources": {
+  "AnalyticsEC2Instance": {
+    "Type": "AWS::EC2::Instance",
+    "Properties": {
+      "DisableApiTermination": "false",
+      "InstanceInitiatedShutdownBehavior": "stop",
+      "InstanceType": {"Ref": "InstanceType"},
+      "ImageId" : {"Ref": "ImageId"},
+      "KeyName": {"Ref": "KeyName"},
+      "Tags": [ {"Key": "Name", "Value": "Chef-Analytics"}],
+      "NetworkInterfaces" : [ {"NetworkInterfaceId" : {"Ref" : "AnalyticsENI"}, "DeviceIndex" : 0 } ],
+      "BlockDeviceMappings": [
+        {
+          "DeviceName": "/dev/sda1",
+          "Ebs": {
+            "VolumeType": "standard",
+            "DeleteOnTermination": "true",
+            "VolumeSize": "15"
+          }
+        }
+      ],
+      "UserData": {
+        "Fn::Base64" : { "Fn::Join" : ["", [
+              "#!/bin/bash -xev\n",
+              "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+              "# Add chef repo\n",
+              "curl -s https://packagecloud.io/install/repositories/chef/stable/script.deb.sh | bash\n",
+              "# Install cfn bootstraping tools\n",
+              "apt-get update && apt-get upgrade\n",
+              "apt-get -y install python-setuptools python-pip git\n",
+              "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+              "# Install awscli\n",
+              "pip install awscli\n",
+              "# Echo out aws config\n",
+              "mkdir -p /root/.chef/cookbooks /root/.aws/\n",
+              "touch /root/.aws/config /root/.aws/credentials /root/.ssh/config /root/.chef/cookbooks/Berksfile /root/.chef/cookbooks/client.rb\n",
+              "echo '[default]' >> /root/.aws/config \n",
+              "echo 'output = json' >> /root/.aws/config\n",
+              "echo 'region = ", {"Ref" : "AWS::Region" } ,"' >> /root/.aws/config\n",
+              "# Echo out AWS Credentials\n",
+              "echo '[default]' >> /root/.aws/credentials\n",
+              "echo 'aws_access_key_id=", {"Ref" : "AccessKey" } ,"' >> /root/.aws/credentials\n",
+              "echo 'aws_secret_access_key=", {"Ref" : "SecretKey" } ,"' >> /root/.aws/credentials\n",
+              "# Helper function to set wait timer\n",
+              "function error_exit\n",
+              "{\n",
+              "  /usr/local/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
+              "  exit 1\n",
+              "}\n",
+              "# Set hostname\n",
+              "hostname ", {"Ref" : "InternalDNS" } ,"\n",
+              "echo \"", {"Ref" : "InternalDNS" } ,"\" > /etc/hostname\n",
+              "# Do some chef things\n",
+              "apt-get install chef opscode-analytics\n",
+              "cat > '/root/.chef/cookbooks/analytics.json' << EOF\n",
+              "{\n",
+              "  \"cf_ha_chef\": {\n",
+              "     \"api_fqdn\": \"", { "Fn::Join": ["",["chef",".",{"Ref": "HostedZone"}]] } ,"\",\n",
+              "     \"domain\": \"", {"Ref": "HostedZone"} ,"\",\n",
+              "     \"analytics\": {\n",
+              "       \"stage_subdomain\": \"", { "Fn::Join": ["",[{"Ref": "AnalyticsSubdomain"},".",{"Ref": "HostedZone"}]] } ,"\",\n",
+              "       \"url\": \"", { "Fn::Join": ["",[{"Ref": "AnalyticsSubdomain"},".",{"Ref": "HostedZone"}]] } ,"\",\n",
+              "       \"fqdn\": \"", {"Ref" : "InternalDNS" } ,"\",\n",
+              "       \"ip_address\": \"", {"Ref" : "AnalyticsIP" } ,"\"\n",
+              "     }\n",
+              "  },\n",
+              "  \"run_list\": [\n",
+              "    \"recipe[cf_ha_chef::analytics]\"\n",
+              "  ]\n",
+              "}\n",
+              "EOF\n",
+              "\n",
+              "# Copy post install json and swap run list\n",
+              "cp /root/.chef/cookbooks/analytics.json /root/.chef/cookbooks/analytics_post.json && sed -i 's/cf_ha_chef::analytics/cf_ha_chef::analytics_post/g' /root/.chef/cookbooks/analytics_post.json\n",
+              "BERKSHELF_PATH=/root/.chef/cookbooks\n",
+              "#clone cookbook to run \n",
+              "cd /root/.chef/cookbooks\n",
+              "cat > \"/root/.chef/cookbooks/client.rb\" <<EOF\n",
+              "cookbook_path '/root/.chef/cookbooks'\n",
+              "EOF\n",
+              "\n",
+              "git clone ", {"Ref" : "HACookbookGit" } ,"\n",
+              "chef-client -c '/root/.chef/cookbooks/client.rb' -z --chef-zero-port 8899 -j '/root/.chef/cookbooks/analytics.json' || error_exit 'Failed to run chef-client'\n",
+              "# All is well so signal success and let CF know wait function is complete\n",
+              "/usr/local/bin/cfn-signal -e 0 -r \"Webserver setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "AnalyticsEIP": {
+    "Type": "AWS::EC2::EIP",
+    "Properties": {
+      "InstanceId": {
+        "Ref": "AnalyticsEC2Instance"
+      },
+      "Domain": "vpc"
+    }
+  },
+  "ExternalDNS": {
+    "Type": "AWS::Route53::RecordSet",
+    "Properties": {
+      "HostedZoneName": {"Fn::Join" : [ "",[{"Ref" : "HostedZone"} ,"." ] ]},
+      "Comment": "DNS name for Analytics Instance.",
+      "Name": {
+        "Fn::Join": ["",[{"Ref": "AnalyticsSubdomain"},".",{"Ref": "HostedZone"}]]},
+      "Type": "A",
+      "TTL": "60",
+      "ResourceRecords": [
+        {
+          "Ref": "AnalyticsEIP"
+        }
+      ]
+    }
+  },
+   "WaitHandle" : {
+     "Type" : "AWS::CloudFormation::WaitConditionHandle"
+   },
+   "WaitCondition" : {
+     "Type" : "AWS::CloudFormation::WaitCondition",
+     "DependsOn" : "AnalyticsEC2Instance",
+     "Properties" : {
+         "Handle" : { "Ref" : "WaitHandle" },
+         "Timeout" : "1600"
+       }
+    }
+  },
+  "Outputs": {
+    "AnalyticsEIP": {
+      "Description": "EIP for Analytics Instace.",
+      "Value": {
+        "Ref": "AnalyticsEIP"
+      }
+    },
+    "AnalyticsURL": {
+      "Description": "Analytics URL/Route53 Endpoint.",
+      "Value": {
+        "Ref": "ExternalDNS"
+      }
+    }
+  }
+}

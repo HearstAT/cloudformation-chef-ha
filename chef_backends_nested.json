@@ -1,0 +1,436 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Cloudformation Chef Backend Servers v1.0",
+  "Parameters": {
+    "HostedZone": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "must match a route53 hosted domain/zone"
+    },
+    "HostedSubdomain": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "subdomain/prefix for chose hosted zone"
+    },
+    "AnalyticsSubdomain": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "subdomain/prefix for chose hosted zone"
+    },
+    "HACookbookGit": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "Git Clone URI for Cookbook"
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Default": ""
+    },
+    "ImageId": {
+      "Type": "String",
+      "Default": ""
+    },
+    "KeyName": {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type" : "String"
+    },
+    "SSHSecurityGroup" : {
+      "Description" : "Select Security Group for SSH Access",
+      "Type": "String",
+      "Default": ""
+    },
+    "PrimaryENI": {
+      "Description" : "Choose ENI to use",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FailoverENI": {
+      "Description" : "Choose ENI to use",
+      "Type" : "String",
+      "Default": ""
+    },
+    "AccessKey": {
+      "Description" : "Enter User Access Key",
+      "Type" : "String",
+      "Default": ""
+    },
+    "SecretKey": {
+      "Description" : "Enter User Secret Key",
+      "Type" : "String",
+      "Default": ""
+    },
+    "VPC": {
+      "Description" : "Choose VPC to use",
+      "Type" : "String",
+      "Default": ""
+    },
+    "Subnet": {
+      "Description" : "Choose Subnet",
+      "Type" : "String",
+      "Default": ""
+    },
+    "BackendEBSID": {
+      "Description" : "Choose Subnet",
+      "Type" : "String",
+      "Default": ""
+    },
+    "PrimaryInternalDNS": {
+      "Description" : "Enter Private DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FailoverInternalDNS": {
+      "Description" : "Enter Private DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "PrimaryIP": {
+      "Description" : "Enter Private IP",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FailoverIP": {
+      "Description" : "Enter Private IP",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FE01DNS": {
+      "Description" : "Enter Frontend01 DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FE01IP": {
+      "Description" : "Enter Frontend01 IP",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FE02DNS": {
+      "Description" : "Enter Frontend02 DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FE02IP": {
+      "Description" : "Enter Frontend02 IP",
+      "Type" : "String",
+      "Default": ""
+    },
+    "BackendEBSID": {
+      "Description" : "Enter Snapshot ID",
+      "Type" : "String",
+      "Default": ""
+    },
+    "VIP": {
+      "Description" : "Enter VIP",
+      "Type" : "String",
+      "Default": ""
+    },
+    "VIPInternalDNS": {
+      "Description" : "Enter VIP DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "PrimaryInternalDNS": {
+      "Description" : "Enter Private DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FailoverInternalDNS": {
+      "Description" : "Enter Private DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "AnalyticsInternalDNS": {
+      "Description" : "Enter Private DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "AnalyticsDNS": {
+      "Description" : "Enter Private DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "AnalyticsIP": {
+      "Description" : "Enter Private IP",
+      "Type" : "String",
+      "Default": ""
+    }
+},
+"Resources": {
+  "BackendEIP": {
+    "Type": "AWS::EC2::EIP",
+    "Properties": {
+      "InstanceId": {
+        "Ref": "BackendPrimaryEC2Instance"
+      },
+      "Domain": "vpc"
+    }
+  },
+  "FailoverEIP": {
+    "Type": "AWS::EC2::EIP",
+    "Properties": {
+      "InstanceId": {
+        "Ref": "BackendFailoverEC2Instance"
+      },
+      "Domain": "vpc"
+    }
+  },
+  "BackendPrimaryEC2Instance": {
+    "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "false",
+        "InstanceInitiatedShutdownBehavior": "stop",
+        "InstanceType": {"Ref": "InstanceType"},
+        "ImageId" : {"Ref": "ImageId"},
+        "KeyName": {"Ref": "KeyName"},
+        "Tags": [ {"Key": "Name", "Value": "Chef-Backend-Primary"}],
+        "NetworkInterfaces" : [ {"NetworkInterfaceId" : {"Ref" : "PrimaryENI"}, "DeviceIndex" : 0 } ],
+        "Volumes" : [
+           { "VolumeId" : { "Ref" : "BackendEBSID" }, "Device" : "/dev/sdf" }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeType": "standard",
+              "DeleteOnTermination": "true",
+              "VolumeSize": "20"
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64" : { "Fn::Join" : ["", [
+                "#!/bin/bash -xev\n",
+                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "# Add chef repo\n",
+                "curl -s https://packagecloud.io/install/repositories/chef/stable/script.deb.sh | bash\n",
+                "# Install cfn bootstraping tools\n",
+                "apt-get update && apt-get upgrade\n",
+                "apt-get -y install python-setuptools python-pip git\n",
+                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                "# Install awscli\n",
+                "pip install awscli\n",
+                "# Echo out aws config\n",
+                "mkdir -p /root/.chef/cookbooks /root/.aws/\n",
+                "touch /root/.aws/config /root/.aws/credentials /root/.ssh/config /root/.chef/cookbooks/Berksfile /root/.chef/cookbooks/client.rb\n",
+                "echo '[default]' >> /root/.aws/config \n",
+                "echo 'output = json' >> /root/.aws/config\n",
+                "echo 'region = ", {"Ref" : "AWS::Region" } ,"' >> /root/.aws/config\n",
+                "# Echo out AWS Credentials\n",
+                "echo '[default]' >> /root/.aws/credentials\n",
+                "echo 'aws_access_key_id=", {"Ref" : "AccessKey" } ,"' >> /root/.aws/credentials\n",
+                "echo 'aws_secret_access_key=", {"Ref" : "SecretKey" } ,"' >> /root/.aws/credentials\n",
+                "# Helper function to set wait timer\n",
+                "function error_exit\n",
+                "{\n",
+                "  /usr/local/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "PrimaryWaitHandle" }, "'\n",
+                "  exit 1\n",
+                "}\n",
+                "# Set hostname\n",
+                "hostname ", {"Ref" : "PrimaryInternalDNS" } ," || error_exit 'Failed to set hostname'\n",
+                "echo \"", {"Ref" : "PrimaryInternalDNS" } ,"\" > /etc/hostname || error_exit 'Failed to set hostname file'\n",
+                "# Set Chef VIP\n",
+                "aws ec2 assign-private-ip-addresses --network-interface-id ", {"Ref" : "PrimaryENI" } ," --allow-reassignment --private-ip-addresses ", {"Ref" : "VIP" } ," || error_exit 'Failed to set VIP'\n",
+                "#do some chef things\n",
+                "apt-get install chef chef-server-core chef-ha || error_exit 'Failed to install chef core'\n",
+                "cat > '/root/.chef/cookbooks/primary.json' << EOF\n",
+                "{\n",
+                "  \"cf_ha_chef\": {\n",
+                "     \"backendprimary\": {\n",
+                "         \"fqdn\": \"", {"Ref" : "PrimaryInternalDNS" } ,"\",\n",
+                "         \"ip_address\": \"", {"Ref" : "PrimaryIP" } ,"\"\n",
+                "     },\n",
+                "     \"backendfailover\": {\n",
+                "         \"fqdn\": \"", {"Ref" : "FailoverInternalDNS" } ,"\",\n",
+                "         \"ip_address\": \"", {"Ref" : "FailoverIP" } ,"\"\n",
+                "     },\n",
+                "     \"backend_vip\": {\n",
+                "           \"fqdn\": \"", {"Ref" : "VIPInternalDNS" } ,"\",\n",
+                "           \"ip_address\": \"", {"Ref" : "VIP" } ,"\"\n",
+                "     },\n",
+                "     \"frontends\": {\n",
+                "       \"fe1\": {\n",
+                "           \"fqdn\": \"", {"Ref" : "FE01DNS" } ,"\",\n",
+                "           \"ip_address\": \"", {"Ref" : "FE01IP" } ,"\"\n",
+                "       },\n",
+                "       \"fe2\": {\n",
+                "           \"fqdn\": \"", {"Ref" : "FE02DNS" } ,"\",\n",
+                "           \"ip_address\": \"", {"Ref" : "FE02IP" } ,"\"\n",
+                "       }\n",
+                "     },\n",
+                "     \"api_fqdn\": \"", { "Fn::Join": ["",["chef",".",{"Ref": "HostedZone"}]] } ,"\",\n",
+                "     \"domain\": \"", {"Ref": "HostedZone"} ,"\",\n",
+                "     \"stage_subdomain\": \"", {"Ref": "HostedSubdomain"} ,"\",\n",
+                "     \"aws_access_key_id\": \"", {"Ref" : "AccessKey" } ,"\",\n",
+                "     \"aws_secret_access_key\": \"", {"Ref" : "SecretKey" } ,"\",\n",
+                "     \"ebs_volume_id\": \"", {"Ref" : "BackendEBSID" } ,"\",\n",
+                "     \"analytics\": {\n",
+                "       \"stage_subdomain\": \"", { "Fn::Join": ["",[{"Ref": "AnalyticsSubdomain"},".",{"Ref": "HostedZone"}]] } ,"\",\n",
+                "       \"url\": \"", {"Ref" : "AnalyticsDNS" } ,"\",\n",
+                "       \"fqdn\": \"", {"Ref" : "AnalyticsInternalDNS" } ,"\",\n",
+                "       \"ip_address\": \"", {"Ref" : "AnalyticsIP" } ,"\"\n",
+                "     }\n",
+                "  },\n",
+                "  \"run_list\": [\n",
+                "    \"recipe[cf_ha_chef::primary]\"\n",
+                "  ]\n",
+                "}\n",
+                "EOF\n",
+                "\n",
+                "# Copy post install json and swap run list\n",
+                "cp /root/.chef/cookbooks/primary.json /root/.chef/cookbooks/primary_post.json && sed -i 's/cf_ha_chef::primary/cf_ha_chef::primary_post/g' /root/.chef/cookbooks/primary_post.json\n",
+                "#clone cookbook to run \n",
+                "cd /root/.chef/cookbooks\n",
+                "cat > \"/root/.chef/cookbooks/client.rb\" <<EOF\n",
+                "cookbook_path '/root/.chef/cookbooks'\n",
+                "EOF\n",
+                "\n",
+                "git clone ", {"Ref" : "HACookbookGit" } ,"\n",
+                "chef-client -c '/root/.chef/cookbooks/client.rb' -z --chef-zero-port 8899 -j '/root/.chef/cookbooks/primary.json' || error_exit 'Failed to run chef-client'\n",
+                "# All is well so signal success and let CF know wait function is complete\n",
+                "/usr/local/bin/cfn-signal -e 0 -r \"Chef Backend Primary Setup Complete\" '", { "Ref" : "PrimaryWaitHandle" }, "'\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "BackendFailoverEC2Instance": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": ["BackendPrimaryEC2Instance", "PrimaryWaitCondition"],
+      "Properties": {
+        "DisableApiTermination": "false",
+        "InstanceInitiatedShutdownBehavior": "stop",
+        "InstanceType": {"Ref": "InstanceType"},
+        "ImageId" : {"Ref": "ImageId"},
+        "KeyName": {"Ref": "KeyName"},
+        "Tags": [ {"Key": "Name", "Value": "Chef-Backend-Failover"}],
+        "NetworkInterfaces" : [ {"NetworkInterfaceId" : {"Ref" : "FailoverENI"}, "DeviceIndex" : 0 } ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeType": "standard",
+              "DeleteOnTermination": "true",
+              "VolumeSize": "20"
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64" : { "Fn::Join" : ["", [
+                "#!/bin/bash -xev\n",
+                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "# Add chef repo\n",
+                "curl -s https://packagecloud.io/install/repositories/chef/stable/script.deb.sh | bash\n",
+                "# Install cfn bootstraping tools\n",
+                "apt-get update && apt-get upgrade\n",
+                "apt-get -y install python-setuptools python-pip git\n",
+                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                "# Install awscli\n",
+                "pip install awscli\n",
+                "# Echo out aws config\n",
+                "mkdir -p /root/.chef/cookbooks /root/.aws/\n",
+                "touch /root/.aws/config /root/.aws/credentials /root/.ssh/config /root/.chef/cookbooks/Berksfile /root/.chef/cookbooks/client.rb\n",
+                "echo '[default]' >> /root/.aws/config \n",
+                "echo 'output = json' >> /root/.aws/config\n",
+                "echo 'region = ", {"Ref" : "AWS::Region" } ,"' >> /root/.aws/config\n",
+                "# Echo out AWS Credentials\n",
+                "echo '[default]' >> /root/.aws/credentials\n",
+                "echo 'aws_access_key_id=", {"Ref" : "AccessKey" } ,"' >> /root/.aws/credentials\n",
+                "echo 'aws_secret_access_key=", {"Ref" : "SecretKey" } ,"' >> /root/.aws/credentials\n",
+                "# Helper function to set wait timer\n",
+                "function error_exit\n",
+                "{\n",
+                "  /usr/local/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "FailoverWaitHandle" }, "'\n",
+                "  exit 1\n",
+                "}\n",
+                "# Set hostname\n",
+                "hostname ", {"Ref" : "FailoverInternalDNS" } ," || error_exit 'Failed to set hostname'\n",
+                "echo \"", {"Ref" : "FailoverInternalDNS" } ,"\" > /etc/hostname || error_exit 'Failed to set hostname file'\n",
+                "#do some chef things\n",
+                "apt-get install chef chef-server-core chef-ha || error_exit 'Failed to install chef core'\n",
+                "cat > '/root/.chef/cookbooks/failover.json' << EOF\n",
+                "{\n",
+                "  \"cf_ha_chef\": {\n",
+                "     \"backendprimary\": {\n",
+                "         \"fqdn\": \"", {"Ref" : "PrimaryInternalDNS" } ,"\",\n",
+                "         \"ip_address\": \"", {"Ref" : "PrimaryIP" } ,"\"\n",
+                "     },\n",
+                "     \"backendfailover\": {\n",
+                "         \"fqdn\": \"", {"Ref" : "FailoverInternalDNS" } ,"\",\n",
+                "         \"ip_address\": \"", {"Ref" : "FailoverIP" } ,"\"\n",
+                "     },\n",
+                "     \"backend_vip\": {\n",
+                "           \"fqdn\": \"", {"Ref" : "VIPInternalDNS" } ,"\",\n",
+                "           \"ip_address\": \"", {"Ref" : "VIP" } ,"\"\n",
+                "     },\n",
+                "     \"frontends\": {\n",
+                "       \"fe1\": {\n",
+                "           \"fqdn\": \"", {"Ref" : "FE01DNS" } ,"\",\n",
+                "           \"ip_address\": \"", {"Ref" : "FE01IP" } ,"\"\n",
+                "       },\n",
+                "       \"fe2\": {\n",
+                "           \"fqdn\": \"", {"Ref" : "FE02DNS" } ,"\",\n",
+                "           \"ip_address\": \"", {"Ref" : "FE02IP" } ,"\"\n",
+                "       }\n",
+                "     },\n",
+                "     \"api_fqdn\": \"", { "Fn::Join": ["",["chef",".",{"Ref": "HostedZone"}]] } ,"\",\n",
+                "     \"domain\": \"", {"Ref": "HostedZone"} ,"\",\n",
+                "     \"stage_subdomain\": \"", {"Ref": "HostedSubdomain"} ,"\",\n",
+                "     \"aws_access_key_id\": \"", {"Ref" : "AccessKey" } ,"\",\n",
+                "     \"aws_secret_access_key\": \"", {"Ref" : "SecretKey" } ,"\",\n",
+                "     \"ebs_volume_id\": \"", {"Ref" : "BackendEBSID" } ,"\",\n",
+                "     \"analytics\": {\n",
+                "       \"stage_subdomain\": \"", { "Fn::Join": ["",[{"Ref": "AnalyticsSubdomain"},".",{"Ref": "HostedZone"}]] } ,"\",\n",
+                "       \"url\": \"", {"Ref" : "AnalyticsDNS" } ,"\",\n",
+                "       \"fqdn\": \"", {"Ref" : "AnalyticsInternalDNS" } ,"\",\n",
+                "       \"ip_address\": \"", {"Ref" : "AnalyticsIP" } ,"\"\n",
+                "     }\n",
+                "  },\n",
+                "  \"run_list\": [\n",
+                "    \"recipe[cf_ha_chef::failover]\"\n",
+                "  ]\n",
+                "}\n",
+                "EOF\n",
+                "\n",
+                "# Copy post install json and swap run list\n",
+                "cp /root/.chef/cookbooks/failover.json /root/.chef/cookbooks/post_install.json && sed -i 's/cf_ha_chef::failover/cf_ha_chef::post_install/g' /root/.chef/cookbooks/post_install.json\n",
+                "#clone cookbook to run \n",
+                "cd /root/.chef/cookbooks\n",
+                "cat > \"/root/.chef/cookbooks/client.rb\" <<EOF\n",
+                "cookbook_path '/root/.chef/cookbooks'\n",
+                "EOF\n",
+                "\n",
+                "git clone ", {"Ref" : "HACookbookGit" } ," || error_exit 'Failed to get cf_ha_chef cookbook'\n",
+                "chef-client -c '/root/.chef/cookbooks/client.rb' -z --chef-zero-port 8899 -j '/root/.chef/cookbooks/failover.json' || error_exit 'Failed to run chef-client'\n",
+                "# All is well so signal success and let CF know wait function is complete\n",
+                "/usr/local/bin/cfn-signal -e 0 -r \"Chef Backend Failover Setup Complete\" '", { "Ref" : "FailoverWaitHandle" }, "'\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+   "PrimaryWaitHandle" : {
+     "Type" : "AWS::CloudFormation::WaitConditionHandle"
+   },
+   "FailoverWaitHandle" : {
+     "Type" : "AWS::CloudFormation::WaitConditionHandle"
+   },
+   "PrimaryWaitCondition" : {
+     "Type" : "AWS::CloudFormation::WaitCondition",
+     "DependsOn" : "BackendPrimaryEC2Instance",
+     "Properties" : {
+         "Handle" : { "Ref" : "PrimaryWaitHandle" },
+         "Timeout" : "1600"
+       }
+    },
+    "FailoverWaitCondition" : {
+      "Type" : "AWS::CloudFormation::WaitCondition",
+      "DependsOn" : "BackendFailoverEC2Instance",
+      "Properties" : {
+          "Handle" : { "Ref" : "FailoverWaitHandle" },
+          "Timeout" : "1600"
+        }
+    }
+  }
+}
