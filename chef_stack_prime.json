@@ -29,7 +29,7 @@
     },
     "HACookbookGit": {
         "Type": "String",
-        "Default": "",
+        "Default": "https://github.com/HearstAT/cf_ha_chef",
         "Description": "Git Clone URI for Cookbook"
     },
     "BackendTempalateURL": {

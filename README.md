@@ -1,7 +1,7 @@
 # ha-chef-stack
 Cloudformation Templates to setup our HA Chef Stack
 
-This requires the use of [cf_ha_chef]() cookbook to function.
+This requires the use of [cf_ha_chef](https://github.com/HearstAT/cf_ha_chef) cookbook to function.
 
 This is a nested template setup that installs Frontends, Backends, and a stand alone Analytics server.
 
