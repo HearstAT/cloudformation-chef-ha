@@ -119,6 +119,11 @@
       "Default": "",
       "ConstraintDescription": "Git Clone URI for Cookbook"
     },
+    "UserDataScript": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "URL for userdata script"
+    },
     "AnalyticsSubdomain": {
       "Type": "String",
       "Default": "",
@@ -188,7 +193,7 @@
                 "apt-get update && apt-get -y upgrade \n",
                 "apt-get -y intall wget curl python-setuptools python-pip git\n",
                 "mkdir -p /user-init/ \n",
-                "curl -Sl ", { "Ref" : "UserData-Script" }," -o /user-init/userdata.sh\n",
+                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
                 "export BUILD_DATA=${1}\n",
                 "export WAITHANDLE=", { "Ref" : "PrimaryWaitHandle" },"\n",
                 "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
@@ -248,7 +253,7 @@
                 "apt-get update && apt-get -y upgrade \n",
                 "apt-get -y intall wget curl python-setuptools python-pip git\n",
                 "mkdir -p /user-init/ \n",
-                "curl -Sl ", { "Ref" : "UserData-Script" }," -o /user-init/userdata.sh\n",
+                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
                 "export BUILD_DATA=${1}\n",
                 "export WAITHANDLE=", { "Ref" : "PrimaryWaitHandle" },"\n",
                 "export REGION=", {"Ref" : "AWS::Region" } ," \n ",

@@ -63,6 +63,11 @@
         "Type": "AWS::EC2::SecurityGroup::Id",
         "Default": ""
     },
+    "UserDataScript": {
+      "Type": "String",
+       "Default": "https://github.com/HearstAT/cloudformation-chef-ha/blob/master/userdata.sh",
+       "Description" : "URL for userdata script to run"
+    },
     "BackupScript": {
       "Type": "String",
        "Default": "true",
@@ -548,6 +553,7 @@
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "HACookbookGit": { "Ref": "HACookbookGit" },
+          "UserDataScript": { "Ref": "UserDataScript" },
           "AnalyticsSubdomain": { "Ref": "AnalyticsSubdomain" },
           "AnalyticsInternalDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
           "AnalyticsDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", { "Ref" : "HostedZone" } ] ] },
@@ -617,7 +623,7 @@
                                    { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" } ],
         "SecurityGroupEgress" : [ { "IpProtocol" : "tcp", "FromPort" : "0",  "ToPort" : "65535",  "CidrIp" : "0.0.0.0/0" } ],
         "Tags" : [
-           { "Key" : "Name", "Value" : "HBM-Chef-HA-ELB-SecurityGroup" }
+           { "Key" : "Name", "Value" : "Chef-HA-ELB-SecurityGroup" }
         ]
       }
     },
@@ -653,10 +659,10 @@
           "SSLCertificateARN": { "Ref": "SSLCertificateARN" },
           "SubnetA": { "Ref": "PublicSubnetA" },
           "SubnetB": { "Ref": "PublicSubnetB" },
+          "FE01ENI": { "Ref": "FE01ENI" },
+          "FE02ENI": { "Ref": "FE02ENI" },
           "AccessKey": { "Ref": "HostKeys" },
           "SecretKey": { "Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ]},
-          "PrimaryENI": { "Ref": "BackendPrimaryENI" },
-          "FailoverENI": { "Ref": "BackendFailoverENI" },
           "VIP": { "Ref": "BackendVIP" },
           "VIPInternalDNS": { "Fn::Join" : [ "", [ "chef-vip", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
           "PrimaryIP": { "Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ] },
@@ -671,6 +677,7 @@
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "HACookbookGit": { "Ref": "HACookbookGit" },
+          "UserDataScript": { "Ref": "UserDataScript" },
           "AnalyticsSubdomain": { "Ref": "AnalyticsSubdomain" },
           "AnalyticsInternalDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
           "AnalyticsDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", { "Ref" : "HostedZone" } ] ] },
@@ -734,8 +741,7 @@
           "Subnet": { "Ref": "PublicSubnetA" },
           "AccessKey": { "Ref": "HostKeys" },
           "SecretKey": { "Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ]},
-          "PrimaryENI": { "Ref": "BackendPrimaryENI" },
-          "FailoverENI": { "Ref": "BackendFailoverENI" },
+          "AnalyticsENI": { "Ref": "AnalyticsENI" },
           "VIP": { "Ref": "BackendVIP" },
           "VIPInternalDNS": { "Fn::Join" : [ "", ["chef-vip", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
           "PrimaryIP": { "Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ] },
@@ -750,6 +756,7 @@
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "HACookbookGit": { "Ref": "HACookbookGit" },
+          "UserDataScript": { "Ref": "UserDataScript" },
           "AnalyticsSubdomain": { "Ref": "AnalyticsSubdomain" },
           "AnalyticsInternalDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
           "AnalyticsDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", { "Ref" : "HostedZone" } ] ] },

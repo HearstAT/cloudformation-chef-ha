@@ -44,6 +44,16 @@
       "Type" : "String",
       "Default": ""
     },
+    "FE01ENI": {
+      "Description" : "Choose ENI to use",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FE02ENI": {
+      "Description" : "Choose ENI to use",
+      "Type" : "String",
+      "Default": ""
+    },
     "AccessKey": {
       "Description" : "Enter User Access Key",
       "Type" : "String",
@@ -51,16 +61,6 @@
     },
     "SecretKey": {
       "Description" : "Enter User Secret Key",
-      "Type" : "String",
-      "Default": ""
-    },
-    "PrimaryENI": {
-      "Description" : "Choose ENI to use",
-      "Type" : "String",
-      "Default": ""
-    },
-    "FailoverENI": {
-      "Description" : "Choose ENI to use",
       "Type" : "String",
       "Default": ""
     },
@@ -133,6 +133,11 @@
       "Type": "String",
       "Default": "",
       "ConstraintDescription": "Git Clone URI for Cookbook"
+    },
+    "UserDataScript": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "URL for userdata script"
     },
     "AnalyticsSubdomain": {
       "Type": "String",
@@ -258,7 +263,7 @@
                 "apt-get update && apt-get -y upgrade \n",
                 "apt-get -y intall wget curl python-setuptools python-pip git\n",
                 "mkdir -p /user-init/ \n",
-                "curl -Sl ", { "Ref" : "UserData-Script" }," -o /user-init/userdata.sh\n",
+                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
                 "export BUILD_DATA=${1}\n",
                 "export WAITHANDLE=", { "Ref" : "FE01WaitHandle" },"\n",
                 "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
@@ -317,9 +322,9 @@
                 "apt-get update && apt-get -y upgrade \n",
                 "apt-get -y intall wget curl python-setuptools python-pip git\n",
                 "mkdir -p /user-init/ \n",
-                "curl -Sl ", { "Ref" : "UserData-Script" }," -o /user-init/userdata.sh\n",
+                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
                 "export BUILD_DATA=${1}\n",
-                "export WAITHANDLE=", { "Ref" : "FE02EC2Instance" },"\n",
+                "export WAITHANDLE=", { "Ref" : "FE02WaitHandle" },"\n",
                 "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
                 "export ACCESS_KEY=", {"Ref" : "AccessKey" } ," \n ",
                 "export SECRET_KEY=", {"Ref" : "SecretKey" } ," \n ",
