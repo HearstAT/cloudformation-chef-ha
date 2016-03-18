@@ -373,6 +373,13 @@
         "UserName" : { "Ref": "ChefServerUser" }
       }
     },
+    "ChefBucket" : {
+      "Type" : "AWS::S3::Bucket",
+      "Properties" : {
+        "AccessControl" : "Private",
+        "BucketName" : "chef-backup"
+      }
+    },
     "BackendPrimaryENI" : {
       "Type" : "AWS::EC2::NetworkInterface",
       "Properties" : {
