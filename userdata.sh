@@ -62,11 +62,28 @@ function error_exit
 # Set hostname
 hostname  ${DNS}  || error_exit 'Failed to set hostname'
 echo  ${DNS}  > /etc/hostname || error_exit 'Failed to set hostname file'
-# Set Chef VIP
-aws ec2 assign-private-ip-addresses --network-interface-id  ${ENI}  --allow-reassignment --private-ip-addresses  ${VIP}  || error_exit 'Failed to set VIP'
+
+# Primary Only: Set Chef VIP
+if [ ${ROLE} == 'primary' ]; then
+  aws ec2 assign-private-ip-addresses --network-interface-id  ${ENI}  --allow-reassignment --private-ip-addresses  ${VIP}  || error_exit 'Failed to set VIP'
+fi
+
+# install Chef and Chef Core
+apt-get install -y chef || error_exit 'Failed to install chef core'
+
+# Install ChefHA if BackEnd
+if [ ${ROLE} == 'primary' ] || [ ${ROLE} == 'failover' ]; then
+  apt-get install -y chef-ha chef-server-core
+elif [ ${ROLE} == 'frontend' ]; then
+  apt-get install -y chef-manage chef-server-core
+elif [ ${ROLE}] == 'analytics' ]; then
+  apt-get install -y opscode-analytics
+else
+  error_exit 'Role not found'
+fi
 
 # Build out role to run
-apt-get install chef chef-server-core chef-ha || error_exit 'Failed to install chef core'
+
 cat > "/root/.chef/${ROLE}.json" << EOF
 {
   "citadel": {
@@ -120,21 +137,20 @@ EOF
 /opt/chef/embedded/bin/gem install berkshelf
 
 # Primary Only: Copy post install json and swap attribute to true if needed
-if [ ${ROLE} == 'primary' ]
+if [ ${ROLE} == 'primary' ]; then
   cp /root/.chef/${ROLE}.json /root/.chef/${ROLE}_post_restore.json && sed -i 's/false/true/g' /root/.chef/${ROLE}_post_restore.json
 fi
 
-# Clone cookbook to run
+# Switch to main directory
 cd /root/.chef
 cat > /root/.chef/client.rb <<EOF
 cookbook_path '/root/.chef/berks-cookbooks'
 EOF
 
+# Clone the CF companion cookbook
 git clone ${COOKBOOK}
-cd /root/.chef/
-export BERKSHELF_PATH=/root/.chef
 
-su -l -c `/opt/chef/embedded/bin/berks vendor -b /root/.chef/cf_ha_chef/Berksfile` || error_exit 'Berks Vendor failed to run'
+su -l -c `export BERKSHELF_PATH=/root/.chef && /opt/chef/embedded/bin/berks vendor -b /root/.chef/cf_ha_chef/Berksfile` || error_exit 'Berks Vendor failed to run'
 su -l -c `chef-client -c '/root/.chef/client.rb' -z --chef-zero-port 8899 -j "/root/.chef/${ROLE}.json"` || error_exit 'Failed to run chef-client'
 
 # All is well so signal success and let CF know wait function is complete
