@@ -1,27 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Cloudformation Chef Backend Servers v1.0",
+  "Description": "Cloudformation Chef Backend Servers v1.1",
   "Parameters": {
-    "HostedZone": {
-      "Type": "String",
-      "Default": "",
-      "ConstraintDescription": "must match a route53 hosted domain/zone"
-    },
-    "HostedSubdomain": {
-      "Type": "String",
-      "Default": "",
-      "ConstraintDescription": "subdomain/prefix for chose hosted zone"
-    },
-    "AnalyticsSubdomain": {
-      "Type": "String",
-      "Default": "",
-      "ConstraintDescription": "subdomain/prefix for chose hosted zone"
-    },
-    "HACookbookGit": {
-      "Type": "String",
-      "Default": "",
-      "ConstraintDescription": "Git Clone URI for Cookbook"
-    },
     "InstanceType": {
       "Type": "String",
       "Default": ""
@@ -39,13 +19,13 @@
       "Type": "String",
       "Default": ""
     },
-    "PrimaryENI": {
-      "Description" : "Choose ENI to use",
+    "VPC": {
+      "Description" : "Choose VPC to use",
       "Type" : "String",
       "Default": ""
     },
-    "FailoverENI": {
-      "Description" : "Choose ENI to use",
+    "Subnet": {
+      "Description" : "Choose Subnet",
       "Type" : "String",
       "Default": ""
     },
@@ -59,63 +39,13 @@
       "Type" : "String",
       "Default": ""
     },
-    "VPC": {
-      "Description" : "Choose VPC to use",
+    "PrimaryENI": {
+      "Description" : "Choose ENI to use",
       "Type" : "String",
       "Default": ""
     },
-    "Subnet": {
-      "Description" : "Choose Subnet",
-      "Type" : "String",
-      "Default": ""
-    },
-    "BackendEBSID": {
-      "Description" : "Choose Subnet",
-      "Type" : "String",
-      "Default": ""
-    },
-    "PrimaryInternalDNS": {
-      "Description" : "Enter Private DNS",
-      "Type" : "String",
-      "Default": ""
-    },
-    "FailoverInternalDNS": {
-      "Description" : "Enter Private DNS",
-      "Type" : "String",
-      "Default": ""
-    },
-    "PrimaryIP": {
-      "Description" : "Enter Private IP",
-      "Type" : "String",
-      "Default": ""
-    },
-    "FailoverIP": {
-      "Description" : "Enter Private IP",
-      "Type" : "String",
-      "Default": ""
-    },
-    "FE01DNS": {
-      "Description" : "Enter Frontend01 DNS",
-      "Type" : "String",
-      "Default": ""
-    },
-    "FE01IP": {
-      "Description" : "Enter Frontend01 IP",
-      "Type" : "String",
-      "Default": ""
-    },
-    "FE02DNS": {
-      "Description" : "Enter Frontend02 DNS",
-      "Type" : "String",
-      "Default": ""
-    },
-    "FE02IP": {
-      "Description" : "Enter Frontend02 IP",
-      "Type" : "String",
-      "Default": ""
-    },
-    "BackendEBSID": {
-      "Description" : "Enter Snapshot ID",
+    "FailoverENI": {
+      "Description" : "Choose ENI to use",
       "Type" : "String",
       "Default": ""
     },
@@ -129,8 +59,18 @@
       "Type" : "String",
       "Default": ""
     },
+    "PrimaryIP": {
+      "Description" : "Enter Private IP",
+      "Type" : "String",
+      "Default": ""
+    },
     "PrimaryInternalDNS": {
       "Description" : "Enter Private DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FailoverIP": {
+      "Description" : "Enter Private IP",
       "Type" : "String",
       "Default": ""
     },
@@ -138,6 +78,51 @@
       "Description" : "Enter Private DNS",
       "Type" : "String",
       "Default": ""
+    },
+    "FE01DNS": {
+      "Description" : "Enter Frontend01 DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FE02DNS": {
+      "Description" : "Enter Frontend02 DNS",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FE01IP": {
+      "Description" : "Enter Frontend01 IP",
+      "Type" : "String",
+      "Default": ""
+    },
+    "FE02IP": {
+      "Description" : "Enter Frontend02 IP",
+      "Type" : "String",
+      "Default": ""
+    },
+    "HostedZone": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "must match a route53 hosted domain/zone"
+    },
+    "HostedSubdomain": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "subdomain/prefix for chose hosted zone"
+    },
+    "BackendEBSID": {
+      "Description" : "Choose Subnet",
+      "Type" : "String",
+      "Default": ""
+    },
+    "HACookbookGit": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "Git Clone URI for Cookbook"
+    },
+    "AnalyticsSubdomain": {
+      "Type": "String",
+      "Default": "",
+      "ConstraintDescription": "subdomain/prefix for chose hosted zone"
     },
     "AnalyticsInternalDNS": {
       "Description" : "Enter Private DNS",
@@ -200,94 +185,36 @@
         "UserData": {
           "Fn::Base64" : { "Fn::Join" : ["", [
                 "#!/bin/bash -xev\n",
-                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
-                "# Add chef repo\n",
-                "curl -s https://packagecloud.io/install/repositories/chef/stable/script.deb.sh | bash\n",
-                "# Install cfn bootstraping tools\n",
-                "apt-get update && apt-get upgrade\n",
-                "apt-get -y install python-setuptools python-pip git\n",
-                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-                "# Install awscli\n",
-                "pip install awscli\n",
-                "# Echo out aws config\n",
-                "mkdir -p /root/.chef/cookbooks /root/.aws/\n",
-                "touch /root/.aws/config /root/.aws/credentials /root/.ssh/config /root/.chef/cookbooks/Berksfile /root/.chef/cookbooks/client.rb\n",
-                "echo '[default]' >> /root/.aws/config \n",
-                "echo 'output = json' >> /root/.aws/config\n",
-                "echo 'region = ", {"Ref" : "AWS::Region" } ,"' >> /root/.aws/config\n",
-                "# Echo out AWS Credentials\n",
-                "echo '[default]' >> /root/.aws/credentials\n",
-                "echo 'aws_access_key_id=", {"Ref" : "AccessKey" } ,"' >> /root/.aws/credentials\n",
-                "echo 'aws_secret_access_key=", {"Ref" : "SecretKey" } ,"' >> /root/.aws/credentials\n",
-                "# Helper function to set wait timer\n",
-                "function error_exit\n",
-                "{\n",
-                "  /usr/local/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "PrimaryWaitHandle" }, "'\n",
-                "  exit 1\n",
-                "}\n",
-                "# Set hostname\n",
-                "hostname ", {"Ref" : "PrimaryInternalDNS" } ," || error_exit 'Failed to set hostname'\n",
-                "echo \"", {"Ref" : "PrimaryInternalDNS" } ,"\" > /etc/hostname || error_exit 'Failed to set hostname file'\n",
-                "# Set Chef VIP\n",
-                "aws ec2 assign-private-ip-addresses --network-interface-id ", {"Ref" : "PrimaryENI" } ," --allow-reassignment --private-ip-addresses ", {"Ref" : "VIP" } ," || error_exit 'Failed to set VIP'\n",
-                "#do some chef things\n",
-                "apt-get install chef chef-server-core chef-ha || error_exit 'Failed to install chef core'\n",
-                "cat > '/root/.chef/cookbooks/primary.json' << EOF\n",
-                "{\n",
-                "  \"cf_ha_chef\": {\n",
-                "     \"backendprimary\": {\n",
-                "         \"fqdn\": \"", {"Ref" : "PrimaryInternalDNS" } ,"\",\n",
-                "         \"ip_address\": \"", {"Ref" : "PrimaryIP" } ,"\"\n",
-                "     },\n",
-                "     \"backendfailover\": {\n",
-                "         \"fqdn\": \"", {"Ref" : "FailoverInternalDNS" } ,"\",\n",
-                "         \"ip_address\": \"", {"Ref" : "FailoverIP" } ,"\"\n",
-                "     },\n",
-                "     \"backend_vip\": {\n",
-                "           \"fqdn\": \"", {"Ref" : "VIPInternalDNS" } ,"\",\n",
-                "           \"ip_address\": \"", {"Ref" : "VIP" } ,"\"\n",
-                "     },\n",
-                "     \"frontends\": {\n",
-                "       \"fe1\": {\n",
-                "           \"fqdn\": \"", {"Ref" : "FE01DNS" } ,"\",\n",
-                "           \"ip_address\": \"", {"Ref" : "FE01IP" } ,"\"\n",
-                "       },\n",
-                "       \"fe2\": {\n",
-                "           \"fqdn\": \"", {"Ref" : "FE02DNS" } ,"\",\n",
-                "           \"ip_address\": \"", {"Ref" : "FE02IP" } ,"\"\n",
-                "       }\n",
-                "     },\n",
-                "     \"api_fqdn\": \"", { "Fn::Join": ["",["chef",".",{"Ref": "HostedZone"}]] } ,"\",\n",
-                "     \"domain\": \"", {"Ref": "HostedZone"} ,"\",\n",
-                "     \"stage_subdomain\": \"", {"Ref": "HostedSubdomain"} ,"\",\n",
-                "     \"aws_access_key_id\": \"", {"Ref" : "AccessKey" } ,"\",\n",
-                "     \"aws_secret_access_key\": \"", {"Ref" : "SecretKey" } ,"\",\n",
-                "     \"ebs_volume_id\": \"", {"Ref" : "BackendEBSID" } ,"\",\n",
-                "     \"analytics\": {\n",
-                "       \"stage_subdomain\": \"", { "Fn::Join": ["",[{"Ref": "AnalyticsSubdomain"},".",{"Ref": "HostedZone"}]] } ,"\",\n",
-                "       \"url\": \"", {"Ref" : "AnalyticsDNS" } ,"\",\n",
-                "       \"fqdn\": \"", {"Ref" : "AnalyticsInternalDNS" } ,"\",\n",
-                "       \"ip_address\": \"", {"Ref" : "AnalyticsIP" } ,"\"\n",
-                "     }\n",
-                "  },\n",
-                "  \"run_list\": [\n",
-                "    \"recipe[cf_ha_chef::primary]\"\n",
-                "  ]\n",
-                "}\n",
-                "EOF\n",
-                "\n",
-                "# Copy post install json and swap run list\n",
-                "cp /root/.chef/cookbooks/primary.json /root/.chef/cookbooks/primary_post.json && sed -i 's/cf_ha_chef::primary/cf_ha_chef::primary_post/g' /root/.chef/cookbooks/primary_post.json\n",
-                "#clone cookbook to run \n",
-                "cd /root/.chef/cookbooks\n",
-                "cat > \"/root/.chef/cookbooks/client.rb\" <<EOF\n",
-                "cookbook_path '/root/.chef/cookbooks'\n",
-                "EOF\n",
-                "\n",
-                "git clone ", {"Ref" : "HACookbookGit" } ,"\n",
-                "chef-client -c '/root/.chef/cookbooks/client.rb' -z --chef-zero-port 8899 -j '/root/.chef/cookbooks/primary.json' || error_exit 'Failed to run chef-client'\n",
-                "# All is well so signal success and let CF know wait function is complete\n",
-                "/usr/local/bin/cfn-signal -e 0 -r \"Chef Backend Primary Setup Complete\" '", { "Ref" : "PrimaryWaitHandle" }, "'\n"
+                "apt-get update && apt-get -y upgrade \n",
+                "apt-get -y intall wget curl python-setuptools python-pip git\n",
+                "mkdir -p /user-init/ \n",
+                "curl -Sl ", { "Ref" : "UserData-Script" }," -o /user-init/userdata.sh\n",
+                "export BUILD_DATA=${1}\n",
+                "export WAITHANDLE=", { "Ref" : "PrimaryWaitHandle" },"\n",
+                "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
+                "export ACCESS_KEY=", {"Ref" : "AccessKey" } ," \n ",
+                "export SECRET_KEY=", {"Ref" : "SecretKey" } ," \n ",
+                "export ENI=", {"Ref" : "PrimaryENI" } ," \n ",
+                "export VIP=", {"Ref" : "VIP" } ," \n ",
+                "export DNS=", {"Ref" : "PrimaryInternalDNS" } ," \n ",
+                "export PRIMEDNS=", {"Ref" : "PrimaryInternalDNS" } ," \n ",
+                "export PRIMEIP=", {"Ref" : "PrimaryIP" } ," \n ",
+                "export FAILDNS=", {"Ref" : "FailoverInternalDNS" } ," \n ",
+                "export FAILIP=", {"Ref" : "FailoverIP" } ," \n ",
+                "export VIPDNS=", {"Ref" : "VIPInternalDNS" } ," \n ",
+                "export FE01DNS=", {"Ref" : "FE01DNS" } ," \n ",
+                "export FE01IP=", {"Ref" : "FE01IP" } ," \n ",
+                "export FE02DNS=", {"Ref" : "FE02DNS" } ," \n ",
+                "export FE02IP=", {"Ref" : "FE02IP" } ," \n ",
+                "export DOMAIN=", {"Ref": "HostedZone"} ," \n ",
+                "export SUBDOMAIN=", {"Ref": "HostedSubdomain"} ," \n ",
+                "export EBSID=", {"Ref" : "BackendEBSID" } ," \n ",
+                "export COOKBOOK=", {"Ref" : "HACookbookGit" } ," \n ",
+                "export ANALYTICSSUB=", {"Ref": "AnalyticsSubdomain"} ," \n ",
+                "export ANALYTICSDNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
+                "export ANALYTICSIP=", {"Ref" : "AnalyticsIP" } ," \n ",
+                "export ROLE=primary \n ",
+                "su -l -c `/user-init/userdata.sh`"
               ]
             ]
           }
@@ -318,92 +245,36 @@
         "UserData": {
           "Fn::Base64" : { "Fn::Join" : ["", [
                 "#!/bin/bash -xev\n",
-                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
-                "# Add chef repo\n",
-                "curl -s https://packagecloud.io/install/repositories/chef/stable/script.deb.sh | bash\n",
-                "# Install cfn bootstraping tools\n",
-                "apt-get update && apt-get upgrade\n",
-                "apt-get -y install python-setuptools python-pip git\n",
-                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-                "# Install awscli\n",
-                "pip install awscli\n",
-                "# Echo out aws config\n",
-                "mkdir -p /root/.chef/cookbooks /root/.aws/\n",
-                "touch /root/.aws/config /root/.aws/credentials /root/.ssh/config /root/.chef/cookbooks/Berksfile /root/.chef/cookbooks/client.rb\n",
-                "echo '[default]' >> /root/.aws/config \n",
-                "echo 'output = json' >> /root/.aws/config\n",
-                "echo 'region = ", {"Ref" : "AWS::Region" } ,"' >> /root/.aws/config\n",
-                "# Echo out AWS Credentials\n",
-                "echo '[default]' >> /root/.aws/credentials\n",
-                "echo 'aws_access_key_id=", {"Ref" : "AccessKey" } ,"' >> /root/.aws/credentials\n",
-                "echo 'aws_secret_access_key=", {"Ref" : "SecretKey" } ,"' >> /root/.aws/credentials\n",
-                "# Helper function to set wait timer\n",
-                "function error_exit\n",
-                "{\n",
-                "  /usr/local/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "FailoverWaitHandle" }, "'\n",
-                "  exit 1\n",
-                "}\n",
-                "# Set hostname\n",
-                "hostname ", {"Ref" : "FailoverInternalDNS" } ," || error_exit 'Failed to set hostname'\n",
-                "echo \"", {"Ref" : "FailoverInternalDNS" } ,"\" > /etc/hostname || error_exit 'Failed to set hostname file'\n",
-                "#do some chef things\n",
-                "apt-get install chef chef-server-core chef-ha || error_exit 'Failed to install chef core'\n",
-                "cat > '/root/.chef/cookbooks/failover.json' << EOF\n",
-                "{\n",
-                "  \"cf_ha_chef\": {\n",
-                "     \"backendprimary\": {\n",
-                "         \"fqdn\": \"", {"Ref" : "PrimaryInternalDNS" } ,"\",\n",
-                "         \"ip_address\": \"", {"Ref" : "PrimaryIP" } ,"\"\n",
-                "     },\n",
-                "     \"backendfailover\": {\n",
-                "         \"fqdn\": \"", {"Ref" : "FailoverInternalDNS" } ,"\",\n",
-                "         \"ip_address\": \"", {"Ref" : "FailoverIP" } ,"\"\n",
-                "     },\n",
-                "     \"backend_vip\": {\n",
-                "           \"fqdn\": \"", {"Ref" : "VIPInternalDNS" } ,"\",\n",
-                "           \"ip_address\": \"", {"Ref" : "VIP" } ,"\"\n",
-                "     },\n",
-                "     \"frontends\": {\n",
-                "       \"fe1\": {\n",
-                "           \"fqdn\": \"", {"Ref" : "FE01DNS" } ,"\",\n",
-                "           \"ip_address\": \"", {"Ref" : "FE01IP" } ,"\"\n",
-                "       },\n",
-                "       \"fe2\": {\n",
-                "           \"fqdn\": \"", {"Ref" : "FE02DNS" } ,"\",\n",
-                "           \"ip_address\": \"", {"Ref" : "FE02IP" } ,"\"\n",
-                "       }\n",
-                "     },\n",
-                "     \"api_fqdn\": \"", { "Fn::Join": ["",["chef",".",{"Ref": "HostedZone"}]] } ,"\",\n",
-                "     \"domain\": \"", {"Ref": "HostedZone"} ,"\",\n",
-                "     \"stage_subdomain\": \"", {"Ref": "HostedSubdomain"} ,"\",\n",
-                "     \"aws_access_key_id\": \"", {"Ref" : "AccessKey" } ,"\",\n",
-                "     \"aws_secret_access_key\": \"", {"Ref" : "SecretKey" } ,"\",\n",
-                "     \"ebs_volume_id\": \"", {"Ref" : "BackendEBSID" } ,"\",\n",
-                "     \"analytics\": {\n",
-                "       \"stage_subdomain\": \"", { "Fn::Join": ["",[{"Ref": "AnalyticsSubdomain"},".",{"Ref": "HostedZone"}]] } ,"\",\n",
-                "       \"url\": \"", {"Ref" : "AnalyticsDNS" } ,"\",\n",
-                "       \"fqdn\": \"", {"Ref" : "AnalyticsInternalDNS" } ,"\",\n",
-                "       \"ip_address\": \"", {"Ref" : "AnalyticsIP" } ,"\"\n",
-                "     }\n",
-                "  },\n",
-                "  \"run_list\": [\n",
-                "    \"recipe[cf_ha_chef::failover]\"\n",
-                "  ]\n",
-                "}\n",
-                "EOF\n",
-                "\n",
-                "# Copy post install json and swap run list\n",
-                "cp /root/.chef/cookbooks/failover.json /root/.chef/cookbooks/post_install.json && sed -i 's/cf_ha_chef::failover/cf_ha_chef::post_install/g' /root/.chef/cookbooks/post_install.json\n",
-                "#clone cookbook to run \n",
-                "cd /root/.chef/cookbooks\n",
-                "cat > \"/root/.chef/cookbooks/client.rb\" <<EOF\n",
-                "cookbook_path '/root/.chef/cookbooks'\n",
-                "EOF\n",
-                "\n",
-                "git clone ", {"Ref" : "HACookbookGit" } ," || error_exit 'Failed to get cf_ha_chef cookbook'\n",
-                "chef-client -c '/root/.chef/cookbooks/client.rb' -z --chef-zero-port 8899 -j '/root/.chef/cookbooks/failover.json' || error_exit 'Failed to run chef-client'\n",
-                "# All is well so signal success and let CF know wait function is complete\n",
-                "/usr/local/bin/cfn-signal -e 0 -r \"Chef Backend Failover Setup Complete\" '", { "Ref" : "FailoverWaitHandle" }, "'\n"
+                "apt-get update && apt-get -y upgrade \n",
+                "apt-get -y intall wget curl python-setuptools python-pip git\n",
+                "mkdir -p /user-init/ \n",
+                "curl -Sl ", { "Ref" : "UserData-Script" }," -o /user-init/userdata.sh\n",
+                "export BUILD_DATA=${1}\n",
+                "export WAITHANDLE=", { "Ref" : "PrimaryWaitHandle" },"\n",
+                "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
+                "export ACCESS_KEY=", {"Ref" : "AccessKey" } ," \n ",
+                "export SECRET_KEY=", {"Ref" : "SecretKey" } ," \n ",
+                "export ENI=", {"Ref" : "PrimaryENI" } ," \n ",
+                "export VIP=", {"Ref" : "VIP" } ," \n ",
+                "export DNS=", {"Ref" : "FailoverInternalDNS" } ," \n ",
+                "export PRIMEDNS=", {"Ref" : "PrimaryInternalDNS" } ," \n ",
+                "export PRIMEIP=", {"Ref" : "PrimaryIP" } ," \n ",
+                "export FAILDNS=", {"Ref" : "FailoverInternalDNS" } ," \n ",
+                "export FAILIP=", {"Ref" : "FailoverIP" } ," \n ",
+                "export VIPDNS=", {"Ref" : "VIPInternalDNS" } ," \n ",
+                "export FE01DNS=", {"Ref" : "FE01DNS" } ," \n ",
+                "export FE01IP=", {"Ref" : "FE01IP" } ," \n ",
+                "export FE02DNS=", {"Ref" : "FE02DNS" } ," \n ",
+                "export FE02IP=", {"Ref" : "FE02IP" } ," \n ",
+                "export DOMAIN=", {"Ref": "HostedZone"} ," \n ",
+                "export SUBDOMAIN=", {"Ref": "HostedSubdomain"} ," \n ",
+                "export EBSID=", {"Ref" : "BackendEBSID" } ," \n ",
+                "export COOKBOOK=", {"Ref" : "HACookbookGit" } ," \n ",
+                "export ANALYTICSSUB=", {"Ref": "AnalyticsSubdomain"} ," \n ",
+                "export ANALYTICSDNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
+                "export ANALYTICSIP=", {"Ref" : "AnalyticsIP" } ," \n ",
+                "export ROLE=failover \n ",
+                "su -l -c `/user-init/userdata.sh`"
               ]
             ]
           }

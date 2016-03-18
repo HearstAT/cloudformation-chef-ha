@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
-  "Description": "Cloudformation Chef Stack Prime (Manages all Chef HA CF Templates) v1.0",
+  "Description": "Cloudformation Chef Stack Prime (Manages all Chef HA CF Templates) v1.1",
   "Parameters": {
     "HostedZone": {
         "Type": "String",
@@ -9,12 +9,14 @@
     },
     "ChefSubdomain": {
         "Type": "String",
-        "Default": "chef-stage",
+        "Default": "chef-a",
+        "AllowedValues": ["chef-a", "chef-b"],
         "Description": "subdomain/prefix for chose hosted zone used for staging"
     },
     "AnalyticsSubdomain": {
         "Type": "String",
-        "Default": "chef-analytics",
+        "Default": "chef-analytics-a",
+        "AllowedValues": ["chef-analytics-a", "chef-analytics-b"],
         "Description": "subdomain/prefix for chose hosted zone used for staging"
     },
     "SSLCertificateARN": {
@@ -27,24 +29,29 @@
         "Default": "10.0.0.10",
         "Description": "Enter Backend VIP"
     },
+    "ChefBucket": {
+        "Type": "String",
+        "Default": "/bucket/chef-stuff",
+        "Description": "Enter S3 Location for all the items needed from S3"
+    },
     "HACookbookGit": {
         "Type": "String",
         "Default": "https://github.com/HearstAT/cf_ha_chef",
         "Description": "Git Clone URI for Cookbook"
     },
-    "BackendTempalateURL": {
+    "BackendTemplateURL": {
         "Type": "String",
-        "Default": "https://s3",
+        "Default": "https://github.com/HearstAT/cloudformation-chef-ha/blob/master/chef_backends_nested.json",
         "Description": "S3 Bucket location for backend template"
     },
-    "FrontendTempalateURL": {
+    "FrontendTemplateURL": {
         "Type": "String",
-        "Default": "https://s3",
+        "Default": "https://github.com/HearstAT/cloudformation-chef-ha/blob/master/chef_frontends_nested.json",
         "Description": "S3 Bucket location for backend template"
     },
-    "AnalyticsTempalateURL": {
+    "AnalyticsTemplateURL": {
         "Type": "String",
-        "Default": "https://s3",
+        "Default": "https://github.com/HearstAT/cloudformation-chef-ha/blob/master/chef_analytics_nested.json",
         "Description": "S3 Bucket location for backend template"
     },
     "KeyName": {
@@ -56,10 +63,11 @@
         "Type": "AWS::EC2::SecurityGroup::Id",
         "Default": ""
     },
-    "EBSSnapshot": {
-       "Description" : "Enter Snapshot ID of Chef Backend EBS",
-       "Type" : "String",
-       "Default": ""
+    "BackupScript": {
+      "Type": "String",
+       "Default": "true",
+       "AllowedValues": ["true", "false"],
+       "Description" : "Select True/False if you have a chef backup script"
     },
     "VPC": {
         "Description" : "Choose VPC to use",
@@ -275,8 +283,8 @@
      "cn-north-1"      : { "HVM64": "ami-3378b15e" }
     },
     "SubnetConfig" : {
-      "PublicA"     : { "CIDR" : "172.33.10.0/24" },
-      "PublicB"     : { "CIDR" : "172.33.20.0/24" },
+      "PublicA"    : { "CIDR" : "172.33.10.0/24" },
+      "PublicB"    : { "CIDR" : "172.33.20.0/24" },
       "Private"    : { "CIDR" : "172.33.40.0/24" }
     }
   },
@@ -285,8 +293,8 @@
       "Type" : "AWS::EC2::Subnet",
       "Properties" : {
         "VpcId" : { "Ref" : "VPC" },
-        "AvailabilityZone" : {"Ref": "AvailabilityZoneA"},
-        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "PublicA", "CIDR" ]},
+        "AvailabilityZone" : { "Ref": "AvailabilityZoneA" },
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "PublicA", "CIDR" ] },
         "Tags" : [
           { "Key" : "Name", "Value" : "Chef-Public-Subnet" },
           { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
@@ -298,8 +306,8 @@
       "Type" : "AWS::EC2::Subnet",
       "Properties" : {
         "VpcId" : { "Ref" : "VPC" },
-        "AvailabilityZone" : {"Ref": "AvailabilityZoneB"},
-        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "PublicB", "CIDR" ]},
+        "AvailabilityZone" : { "Ref": "AvailabilityZoneB" },
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "PublicB", "CIDR" ] },
         "Tags" : [
           { "Key" : "Name", "Value" : "Chef-Public-Subnet" },
           { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
@@ -311,7 +319,7 @@
       "Type" : "AWS::EC2::Subnet",
       "Properties" : {
         "VpcId" : { "Ref" : "VPC" },
-        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ]},
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ] },
         "Tags" : [
           { "Key" : "Name", "Value" : "Chef-Private-Subnet" },
           { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
@@ -323,14 +331,17 @@
       "Type" : "AWS::IAM::User",
       "Properties" : {
         "Path": "/",
-        "Policies": [{
-          "PolicyName": "Chef-GitKey",
-          "PolicyDocument": { "Statement":[{
+        "Policies": [ {
+          "PolicyName": "ChefHAStack",
+          "PolicyDocument": { "Statement":[ {
             "Effect":"Allow",
             "Action": [
               "cloudformation:DescribeStackResource",
               "s3:GetObject",
               "s3:Put",
+              "s3:PutObject",
+              "s3:PutObjectAcl",
+              "s3:List*",
               "ec2:AttachVolume",
               "ec2:CreateVolume",
               "ec2:CreateTags",
@@ -347,35 +358,35 @@
               "ec2:UnassignPrivateIpAddresses"
             ],
             "Resource":"*"
-          }]}
-        }]
+          } ] }
+        } ]
       }
     },
     "HostKeys" : {
       "Type" : "AWS::IAM::AccessKey",
       "Properties" : {
-        "UserName" : {"Ref": "ChefServerUser"}
+        "UserName" : { "Ref": "ChefServerUser" }
       }
     },
     "BackendPrimaryENI" : {
       "Type" : "AWS::EC2::NetworkInterface",
       "Properties" : {
-        "Tags": [{"Key":"Name","Value":"Backend Primary ENI"}],
+        "Tags": [ { "Key":"Name","Value":"Backend Primary ENI" } ],
         "Description": "Network Adapter for Chef Primary Backend.",
         "SourceDestCheck": "false",
         "GroupSet": [
           { "Ref": "BackendSecurityGroup" },
           { "Ref": "SSHSecurityGroup" }
         ],
-        "SubnetId": {"Ref": "PrivateSubnet"}
+        "SubnetId": { "Ref": "PrivateSubnet" }
      }
     },
     "PrimaryDNS" : {
       "Type" : "AWS::Route53::RecordSet",
       "Properties" : {
-        "HostedZoneName": {"Fn::Join" : [ "",[{"Ref" : "HostedZone"} ,"." ] ]},
+        "HostedZoneName": { "Fn::Join" : [ "",[ { "Ref" : "HostedZone" } ,"." ] ] },
         "Comment" : "DNS name for my instance.",
-        "Name" : {"Fn::Join" : [ "", ["chef-be-primary", ".", "int", ".", {"Ref" : "HostedZone"} ,"." ] ]},
+        "Name" : { "Fn::Join" : [ "", [ "chef-be-primary", ".", "int", ".", { "Ref" : "HostedZone" } ,"." ] ] },
         "Type" : "A",
         "TTL" : "60",
         "ResourceRecords" : [
@@ -387,33 +398,33 @@
       "Type" : "AWS::Route53::RecordSet",
       "DependsOn": "BackendPrimaryENI",
       "Properties" : {
-        "HostedZoneName": {"Fn::Join" : [ "",[{"Ref" : "HostedZone"} ,"." ] ]},
+        "HostedZoneName": { "Fn::Join" : [ "",[ { "Ref" : "HostedZone" } ,"." ] ] },
         "Comment" : "DNS name for Chef VIP",
-        "Name" : { "Fn::Join" : [ "", ["chef-vip", ".", "int", ".", {"Ref" : "HostedZone"} ,"." ] ]},
+        "Name" : { "Fn::Join" : [ "", [ "chef-vip", ".", "int", ".", { "Ref" : "HostedZone" } ,"." ] ] },
         "Type" : "A",
         "TTL" : "60",
-        "ResourceRecords" : [ {"Ref": "BackendVIP"} ]
+        "ResourceRecords" : [ { "Ref": "BackendVIP" } ]
       }
     },
     "BackendFailoverENI" : {
       "Type" : "AWS::EC2::NetworkInterface",
       "Properties" : {
-        "Tags": [{"Key":"Name","Value":"Backend Failover ENI"}],
+        "Tags": [ { "Key":"Name","Value":"Backend Failover ENI" } ],
         "Description": "Network Adapter for Chef Failover Backend.",
         "SourceDestCheck": "false",
         "GroupSet": [
           { "Ref": "BackendSecurityGroup" },
           { "Ref": "SSHSecurityGroup" }
         ],
-        "SubnetId": {"Ref": "PrivateSubnet"}
+        "SubnetId": { "Ref": "PrivateSubnet" }
      }
     },
     "FailoverDNS" : {
       "Type" : "AWS::Route53::RecordSet",
       "Properties" : {
-        "HostedZoneName": {"Fn::Join" : [ "",[{"Ref" : "HostedZone"} ,"." ] ]},
+        "HostedZoneName": { "Fn::Join" : [ "",[ { "Ref" : "HostedZone" } ,"." ] ] },
         "Comment" : "DNS for the Chef Backend Failover",
-        "Name" : {"Fn::Join" : [ "", ["chef-be-failover", ".", "int", ".", {"Ref" : "HostedZone"} ,"." ] ]},
+        "Name" : { "Fn::Join" : [ "", [ "chef-be-failover", ".", "int", ".", { "Ref" : "HostedZone" } ,"." ] ] },
         "Type" : "A",
         "TTL" : "60",
         "ResourceRecords" : [
@@ -427,55 +438,55 @@
         "GroupDescription" : "Allow access from frontend security group and bastion as well as outbound HTTP and HTTPS traffic",
         "VpcId" : { "Ref" : "VPC" },
         "SecurityGroupIngress" : [
-          {"IpProtocol" : "tcp", "FromPort" : "0", "ToPort" : "65535", "SourceSecurityGroupId" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ]}},
-          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "4321", "ToPort" : "4321", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "4369", "ToPort" : "4369", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "5140", "ToPort" : "5140", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "5432", "ToPort" : "5432", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "5672", "ToPort" : "5672", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "5984", "ToPort" : "5984", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "6379", "ToPort" : "6379", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "7788", "ToPort" : "7788", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "8000", "ToPort" : "8000", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "8983", "ToPort" : "8983", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9000", "ToPort" : "9000", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9460", "ToPort" : "9460", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9462", "ToPort" : "9463", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9465", "ToPort" : "9466", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9670", "ToPort" : "9672", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9680", "ToPort" : "9680", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9683", "ToPort" : "9683", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9685", "ToPort" : "9685", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "31337", "ToPort" : "31337", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "16379", "ToPort" : "16379", "SourceSecurityGroupId" : {"Ref" : "FrontendSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "4321", "ToPort" : "4321", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "4369", "ToPort" : "4369", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "5140", "ToPort" : "5140", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "5432", "ToPort" : "5432", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "5672", "ToPort" : "5672", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "5984", "ToPort" : "5984", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "6379", "ToPort" : "6379", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "7788", "ToPort" : "7788", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "8000", "ToPort" : "8000", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "8983", "ToPort" : "8983", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9000", "ToPort" : "9000", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9460", "ToPort" : "9460", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9462", "ToPort" : "9463", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9465", "ToPort" : "9466", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9670", "ToPort" : "9672", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9680", "ToPort" : "9680", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9683", "ToPort" : "9683", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "9685", "ToPort" : "9685", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "31337", "ToPort" : "31337", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "16379", "ToPort" : "16379", "SourceSecurityGroupId" : {"Ref" : "AnalyticsSecurityGroup" }},
-          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "SourceSecurityGroupId" : { "Ref" : "SSHSecurityGroup" } } ],
+          { "IpProtocol" : "tcp", "FromPort" : "0", "ToPort" : "65535", "SourceSecurityGroupId" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ] } },
+          { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "4321", "ToPort" : "4321", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "4369", "ToPort" : "4369", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "5140", "ToPort" : "5140", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "5432", "ToPort" : "5432", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "5672", "ToPort" : "5672", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "5984", "ToPort" : "5984", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "6379", "ToPort" : "6379", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "7788", "ToPort" : "7788", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "8000", "ToPort" : "8000", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "8983", "ToPort" : "8983", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9000", "ToPort" : "9000", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9460", "ToPort" : "9460", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9462", "ToPort" : "9463", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9465", "ToPort" : "9466", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9670", "ToPort" : "9672", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9680", "ToPort" : "9680", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9683", "ToPort" : "9683", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9685", "ToPort" : "9685", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "31337", "ToPort" : "31337", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "16379", "ToPort" : "16379", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "4321", "ToPort" : "4321", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "4369", "ToPort" : "4369", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "5140", "ToPort" : "5140", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "5432", "ToPort" : "5432", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "5672", "ToPort" : "5672", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "5984", "ToPort" : "5984", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "6379", "ToPort" : "6379", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "7788", "ToPort" : "7788", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "8000", "ToPort" : "8000", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "8983", "ToPort" : "8983", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9000", "ToPort" : "9000", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9460", "ToPort" : "9460", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9462", "ToPort" : "9463", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9465", "ToPort" : "9466", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9670", "ToPort" : "9672", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9680", "ToPort" : "9680", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9683", "ToPort" : "9683", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "9685", "ToPort" : "9685", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "31337", "ToPort" : "31337", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "16379", "ToPort" : "16379", "SourceSecurityGroupId" : { "Ref" : "AnalyticsSecurityGroup" } },
+          { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "SourceSecurityGroupId" : { "Ref" : "SSHSecurityGroup" } } ],
         "SecurityGroupEgress" : [
-          { "IpProtocol" : "tcp", "FromPort" : "80",  "ToPort" : "80",  "CidrIp" : "0.0.0.0/0" } ,
-          { "IpProtocol" : "tcp", "FromPort" : "31337",  "ToPort" : "31337",  "CidrIp" : "0.0.0.0/0" } ,
+          { "IpProtocol" : "tcp", "FromPort" : "80",  "ToPort" : "80",  "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "31337",  "ToPort" : "31337",  "CidrIp" : "0.0.0.0/0" },
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" } ],
         "Tags" : [ { "Key" : "Name", "Value" : "Chef-HA-BackendSecurityGroup" } ]
       }
@@ -486,11 +497,11 @@
         "GroupDescription" : "Setup Ingress/Egress for ChefBackend",
         "VpcId" : { "Ref" : "VPC" },
         "SecurityGroupIngress" : [
-           { "IpProtocol" : "tcp", "FromPort" : "80",  "ToPort" : "80",  "CidrIp" : "0.0.0.0/0"} ,
-           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0"} ],
+           { "IpProtocol" : "tcp", "FromPort" : "80",  "ToPort" : "80",  "CidrIp" : "0.0.0.0/0" },
+           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" } ],
         "SecurityGroupEgress" : [
-           { "IpProtocol" : "tcp", "FromPort" : "80",  "ToPort" : "80",  "CidrIp" : "0.0.0.0/0"} ,
-           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0"} ],
+           { "IpProtocol" : "tcp", "FromPort" : "80",  "ToPort" : "80",  "CidrIp" : "0.0.0.0/0" },
+           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" } ],
         "Tags" : [
            { "Key" : "Name", "Value" : "ChefBackend-Security-Group" }
         ]
@@ -502,45 +513,45 @@
         "Size" : "50",
         "Encrypted" : "false",
         "AvailabilityZone" : { "Fn::GetAtt" : [ "PrivateSubnet", "AvailabilityZone" ] } ,
-        "Tags" : [ {"Key" : "Name", "Value" : "Chef-HA-Backend-Drive" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "Chef-HA-Backend-Drive" } ]
       },
       "DeletionPolicy" : "Snapshot"
     },
     "BackendStack" : {
       "Type" : "AWS::CloudFormation::Stack",
-      "DependsOn": ["BackendPrimaryENI", "BackendFailoverENI", "BackendSecurityGroup", "ChefServerUser", "PrivateSubnet"],
+      "DependsOn": [ "BackendPrimaryENI", "BackendFailoverENI", "BackendSecurityGroup", "ChefServerUser", "PrivateSubnet" ],
       "Properties" : {
-        "TemplateURL" : { "Ref": "BackendTempalateURL" },
+        "TemplateURL" : { "Ref": "BackendTemplateURL" },
         "Parameters" : {
-          "HostedZone": { "Ref": "HostedZone" },
-          "HostedSubdomain": { "Ref": "ChefSubdomain" },
-          "HACookbookGit": { "Ref": "HACookbookGit" },
-          "InstanceType": { "Ref": "BackendInstanceType"},
+          "InstanceType": { "Ref": "BackendInstanceType" },
           "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
                      { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "BackendInstanceType" }, "Arch" ] } ] },
           "KeyName" : { "Ref": "KeyName" },
           "SSHSecurityGroup" : { "Ref": "SSHSecurityGroup" },
           "VPC": { "Ref": "VPC" },
-          "AccessKey": {"Ref": "HostKeys"},
-          "SecretKey": {"Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ]},
           "Subnet": { "Ref": "PrivateSubnet" },
+          "AccessKey": { "Ref": "HostKeys" },
+          "SecretKey": { "Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ] },
+          "PrimaryENI": { "Ref": "BackendPrimaryENI" },
+          "FailoverENI": { "Ref": "BackendFailoverENI" },
           "VIP": { "Ref": "BackendVIP" },
-          "VIPInternalDNS": { "Fn::Join" : [ "", ["chef-vip", ".", "int", ".", {"Ref" : "HostedZone"}] ]},
-          "BackendEBSID": {"Ref" : "BackendEBS"},
-          "PrimaryIP": {"Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ]},
-          "PrimaryInternalDNS": { "Fn::Join" : [ "", ["chef-be-primary", ".", "int", ".", {"Ref" : "HostedZone"}]]},
-          "FailoverIP": {"Fn::GetAtt" : [ "BackendFailoverENI", "PrimaryPrivateIpAddress" ]},
-          "FailoverInternalDNS": { "Fn::Join" : [ "", ["chef-be-failover", ".", "int", ".", {"Ref" : "HostedZone"}]]},
-          "FE01DNS": { "Fn::Join" : [ "", ["chef-fe-01", ".", "int", ".", {"Ref" : "HostedZone"}] ]},
-          "FE02DNS": { "Fn::Join" : [ "", ["chef-fe-02", ".", "int", ".", {"Ref" : "HostedZone"} ] ]},
-          "FE01IP": {"Fn::GetAtt" : [ "FE01ENI", "PrimaryPrivateIpAddress" ]},
-          "FE02IP": {"Fn::GetAtt" : [ "FE02ENI", "PrimaryPrivateIpAddress" ]},
-          "PrimaryENI": {"Ref": "BackendPrimaryENI"},
-          "FailoverENI": {"Ref": "BackendFailoverENI"},
-          "AnalyticsSubdomain": {"Ref": "AnalyticsSubdomain"},
-          "AnalyticsInternalDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", "int", ".", {"Ref" : "HostedZone"}]]},
-          "AnalyticsDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", {"Ref" : "HostedZone"}]]},
-          "AnalyticsIP": {"Fn::GetAtt" : [ "AnalyticsENI", "PrimaryPrivateIpAddress" ]}
+          "VIPInternalDNS": { "Fn::Join" : [ "", [ "chef-vip", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "PrimaryIP": { "Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ] },
+          "PrimaryInternalDNS": { "Fn::Join" : [ "", [ "chef-be-primary", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FailoverIP": { "Fn::GetAtt" : [ "BackendFailoverENI", "PrimaryPrivateIpAddress" ] },
+          "FailoverInternalDNS": { "Fn::Join" : [ "", [ "chef-be-failover", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FE01DNS": { "Fn::Join" : [ "", [ "chef-fe-01", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FE02DNS": { "Fn::Join" : [ "", [ "chef-fe-02", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FE01IP": { "Fn::GetAtt" : [ "FE01ENI", "PrimaryPrivateIpAddress" ] },
+          "FE02IP": { "Fn::GetAtt" : [ "FE02ENI", "PrimaryPrivateIpAddress" ] },
+          "HostedZone": { "Ref": "HostedZone" },
+          "HostedSubdomain": { "Ref": "ChefSubdomain" },
+          "BackendEBSID": { "Ref" : "BackendEBS" },
+          "HACookbookGit": { "Ref": "HACookbookGit" },
+          "AnalyticsSubdomain": { "Ref": "AnalyticsSubdomain" },
+          "AnalyticsInternalDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "AnalyticsDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", { "Ref" : "HostedZone" } ] ] },
+          "AnalyticsIP": { "Fn::GetAtt" : [ "AnalyticsENI", "PrimaryPrivateIpAddress" ] }
        },
       "TimeoutInMinutes" : "30"
       }
@@ -548,22 +559,22 @@
     "FE01ENI" : {
       "Type" : "AWS::EC2::NetworkInterface",
       "Properties" : {
-        "Tags": [{"Key":"Name","Value":"FE-01-ENI"}],
+        "Tags": [ { "Key":"Name", "Value":"FE-01-ENI" } ],
         "Description": "Network Adapter for Chef Frontend.",
         "SourceDestCheck": "false",
         "GroupSet": [
           { "Ref": "FrontendSecurityGroup" },
           { "Ref": "SSHSecurityGroup" }
         ],
-        "SubnetId": {"Ref": "PublicSubnetA"}
+        "SubnetId": { "Ref": "PublicSubnetA" }
      }
     },
     "FE01DNS" : {
       "Type" : "AWS::Route53::RecordSet",
       "Properties" : {
-        "HostedZoneName": {"Fn::Join" : [ "",[{"Ref" : "HostedZone"} ,"." ] ]},
+        "HostedZoneName": { "Fn::Join" : [ "",[ { "Ref" : "HostedZone" } ,"." ] ] },
         "Comment" : "DNS name for my instance.",
-        "Name" : {"Fn::Join" : [ "", ["chef-fe-01", ".", "int", ".", {"Ref" : "HostedZone"} ,"." ] ]},
+        "Name" : { "Fn::Join" : [ "", [ "chef-fe-01", ".", "int", ".", { "Ref" : "HostedZone" }, "." ] ] },
         "Type" : "A",
         "TTL" : "60",
         "ResourceRecords" : [
@@ -574,22 +585,22 @@
     "FE02ENI" : {
       "Type" : "AWS::EC2::NetworkInterface",
       "Properties" : {
-        "Tags": [{"Key":"Name","Value":"FE-02-ENI"}],
+        "Tags": [ { "Key":"Name", "Value":"FE-02-ENI" } ],
         "Description": "Network Adapter for Chef Frontend.",
         "SourceDestCheck": "false",
         "GroupSet": [
           { "Ref": "FrontendSecurityGroup" },
           { "Ref": "SSHSecurityGroup" }
         ],
-        "SubnetId": {"Ref": "PublicSubnetB"}
+        "SubnetId": { "Ref": "PublicSubnetB" }
      }
     },
     "FE02DNS" : {
       "Type" : "AWS::Route53::RecordSet",
       "Properties" : {
-        "HostedZoneName": {"Fn::Join" : [ "",[{"Ref" : "HostedZone"} ,"." ] ]},
+        "HostedZoneName": { "Fn::Join" : [ "",[ { "Ref" : "HostedZone" } ,"." ] ] },
         "Comment" : "DNS name for my instance.",
-        "Name" : {"Fn::Join" : [ "", ["chef-fe-02", ".", "int", ".", {"Ref" : "HostedZone"} ,"." ] ]},
+        "Name" : { "Fn::Join" : [ "", [ "chef-fe-02", ".", "int", ".", { "Ref" : "HostedZone" } ,"." ] ]},
         "Type" : "A",
         "TTL" : "60",
         "ResourceRecords" : [
@@ -602,8 +613,8 @@
       "Properties" : {
         "GroupDescription" : "Setup Ingress/Egress for Chef Frontend Load Balancer",
         "VpcId" : { "Ref" : "VPC" },
-        "SecurityGroupIngress" : [ { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"},
-                                   { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0"} ],
+        "SecurityGroupIngress" : [ { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0" },
+                                   { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" } ],
         "SecurityGroupEgress" : [ { "IpProtocol" : "tcp", "FromPort" : "0",  "ToPort" : "65535",  "CidrIp" : "0.0.0.0/0" } ],
         "Tags" : [
            { "Key" : "Name", "Value" : "HBM-Chef-HA-ELB-SecurityGroup" }
@@ -630,40 +641,40 @@
       "Type" : "AWS::CloudFormation::Stack",
       "DependsOn": "BackendStack",
       "Properties" : {
-        "TemplateURL" : { "Ref": "FrontendTempalateURL" },
+        "TemplateURL" : { "Ref": "FrontendTemplateURL" },
           "Parameters" : {
-          "HostedZone": {"Ref": "HostedZone"},
-          "HostedSubdomain": {"Ref": "ChefSubdomain"},
-          "HACookbookGit": {"Ref": "HACookbookGit"},
-          "InstanceType": {"Ref": "FrontendInstanceType" },
-          "ImageId": {"Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region"},
-                     {"Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "FrontendInstanceType" }, "Arch" ] } ] },
-          "KeyName" : {"Ref": "KeyName"},
-          "SSHSecurityGroup" : { "Ref": "SSHSecurityGroup"},
-          "LoadBalancerSecurityGroup" : { "Ref": "LoadBalancerSecurityGroup"},
-          "VPC": {"Ref": "VPC"},
-          "SSLCertificateARN": {"Ref": "SSLCertificateARN"},
-          "AccessKey": {"Ref": "HostKeys"},
-          "SecretKey": {"Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ]},
+          "InstanceType": { "Ref": "FrontendInstanceType" },
+          "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
+                     { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "FrontendInstanceType" }, "Arch" ] } ] },
+          "KeyName" : { "Ref": "KeyName" },
+          "SSHSecurityGroup" : { "Ref": "SSHSecurityGroup" },
+          "LoadBalancerSecurityGroup" : { "Ref": "LoadBalancerSecurityGroup" },
+          "VPC": { "Ref": "VPC" },
+          "SSLCertificateARN": { "Ref": "SSLCertificateARN" },
           "SubnetA": { "Ref": "PublicSubnetA" },
           "SubnetB": { "Ref": "PublicSubnetB" },
-          "VIP": {"Ref": "BackendVIP" },
-          "VIPInternalDNS": {"Fn::Join" : [ "", ["chef-vip", ".", "int", ".", {"Ref" : "HostedZone"}] ]},
-          "BackendEBSID": {"Ref" : "BackendEBS"},
-          "PrimaryIP": {"Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ]},
-          "PrimaryInternalDNS": { "Fn::Join" : [ "", ["chef-be-primary", ".", "int", ".", {"Ref" : "HostedZone"}]]},
-          "FailoverIP": {"Fn::GetAtt" : [ "BackendFailoverENI", "PrimaryPrivateIpAddress" ]},
-          "FailoverInternalDNS": { "Fn::Join" : [ "", ["chef-be-failover", ".", "int", ".", {"Ref" : "HostedZone"}]]},
-          "FE01DNS": {"Fn::Join" : [ "", ["chef-fe-01", ".", "int", ".", {"Ref" : "HostedZone"}] ]},
-          "FE02DNS": {"Fn::Join" : [ "", ["chef-fe-02", ".", "int", ".", {"Ref" : "HostedZone"}] ]},
-          "FE01IP": {"Fn::GetAtt" : [ "FE01ENI", "PrimaryPrivateIpAddress" ]},
-          "FE02IP": {"Fn::GetAtt" : [ "FE02ENI", "PrimaryPrivateIpAddress" ]},
-          "FE01ENI": {"Ref": "FE01ENI"},
-          "FE02ENI": {"Ref": "FE02ENI"},
-          "AnalyticsSubdomain": {"Ref": "AnalyticsSubdomain"},
-          "AnalyticsInternalDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", "int", ".", {"Ref" : "HostedZone"}]]},
-          "AnalyticsDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", {"Ref" : "HostedZone"}]]},
-          "AnalyticsIP": {"Fn::GetAtt" : [ "AnalyticsENI", "PrimaryPrivateIpAddress" ]}
+          "AccessKey": { "Ref": "HostKeys" },
+          "SecretKey": { "Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ]},
+          "PrimaryENI": { "Ref": "BackendPrimaryENI" },
+          "FailoverENI": { "Ref": "BackendFailoverENI" },
+          "VIP": { "Ref": "BackendVIP" },
+          "VIPInternalDNS": { "Fn::Join" : [ "", [ "chef-vip", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "PrimaryIP": { "Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ] },
+          "PrimaryInternalDNS": { "Fn::Join" : [ "", [ "chef-be-primary", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FailoverIP": { "Fn::GetAtt" : [ "BackendFailoverENI", "PrimaryPrivateIpAddress" ] },
+          "FailoverInternalDNS": { "Fn::Join" : [ "", [ "chef-be-failover", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FE01DNS": { "Fn::Join" : [ "", [ "chef-fe-01", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FE02DNS": { "Fn::Join" : [ "", [ "chef-fe-02", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FE01IP": { "Fn::GetAtt" : [ "FE01ENI", "PrimaryPrivateIpAddress" ] },
+          "FE02IP": { "Fn::GetAtt" : [ "FE02ENI", "PrimaryPrivateIpAddress" ] },
+          "HostedZone": { "Ref": "HostedZone" },
+          "HostedSubdomain": { "Ref": "ChefSubdomain" },
+          "BackendEBSID": { "Ref" : "BackendEBS" },
+          "HACookbookGit": { "Ref": "HACookbookGit" },
+          "AnalyticsSubdomain": { "Ref": "AnalyticsSubdomain" },
+          "AnalyticsInternalDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "AnalyticsDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", { "Ref" : "HostedZone" } ] ] },
+          "AnalyticsIP": { "Fn::GetAtt" : [ "AnalyticsENI", "PrimaryPrivateIpAddress" ] }
         },
       "TimeoutInMinutes" : "30"
     }
@@ -674,9 +685,9 @@
         "GroupDescription" : "Setup Ingress/Egress for ChefAnalytics",
         "VpcId" : { "Ref" : "VPC" },
         "SecurityGroupIngress" : [
-           { "IpProtocol" : "tcp", "FromPort" : "80",  "ToPort" : "80",  "CidrIp" : "0.0.0.0/0"} ,
-           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0"} ,
-          { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "SourceSecurityGroupId" : { "Ref" : "SSHSecurityGroup" } } ],
+           { "IpProtocol" : "tcp", "FromPort" : "80",  "ToPort" : "80",  "CidrIp" : "0.0.0.0/0" } ,
+           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" } ,
+           { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "SourceSecurityGroupId" : { "Ref" : "SSHSecurityGroup" } } ],
           "SecurityGroupEgress" : [
           { "IpProtocol" : "tcp", "FromPort" : "0",  "ToPort" : "65535",  "CidrIp" : "0.0.0.0/0" } ],
         "Tags" : [ { "Key" : "Name", "Value" : "ChefAnalytics-Security-Group" } ]
@@ -685,22 +696,22 @@
     "AnalyticsENI" : {
       "Type" : "AWS::EC2::NetworkInterface",
       "Properties" : {
-        "Tags": [{"Key":"Name","Value":"AnalyticsENI"}],
+        "Tags": [{ "Key":"Name","Value":"AnalyticsENI" }],
         "Description": "Network Adapter for Chef Analytics.",
         "SourceDestCheck": "false",
         "GroupSet": [
           { "Ref": "AnalyticsSecurityGroup" },
           { "Ref": "SSHSecurityGroup" }
         ],
-        "SubnetId": {"Ref": "PublicSubnetA"}
+        "SubnetId": { "Ref": "PublicSubnetA" }
      }
     },
     "AnalyticsDNS" : {
       "Type" : "AWS::Route53::RecordSet",
       "Properties" : {
-        "HostedZoneName": {"Fn::Join" : [ "",[{"Ref" : "HostedZone"} ,"." ] ]},
+        "HostedZoneName": { "Fn::Join" : [ "",[ { "Ref" : "HostedZone" }, "." ] ]},
         "Comment" : "DNS name for my instance.",
-        "Name" : {"Fn::Join" : [ "", [{"Ref" : "AnalyticsSubdomain"}, ".","int", ".",{"Ref" : "HostedZone"} ,"."] ]},
+        "Name" : { "Fn::Join" : [ "", [ { "Ref" : "AnalyticsSubdomain" }, ".", "int", ".", { "Ref" : "HostedZone" }, "."] ] },
         "Type" : "A",
         "TTL" : "60",
         "ResourceRecords" : [
@@ -712,24 +723,37 @@
       "Type" : "AWS::CloudFormation::Stack",
       "DependsOn": "FrontendStack",
       "Properties" : {
-        "TemplateURL" : { "Ref": "AnalyticsTempalateURL" },
+        "TemplateURL" : { "Ref": "AnalyticsTemplateURL" },
         "Parameters" : {
-          "HostedZone": { "Ref": "HostedZone" },
-          "AnalyticsSubdomain": { "Ref": "AnalyticsSubdomain" },
-          "HACookbookGit": { "Ref": "HACookbookGit" },
           "InstanceType": { "Ref": "AnalyticsInstanceType" },
           "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
                      { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "AnalyticsInstanceType" }, "Arch" ] } ] },
           "KeyName" : { "Ref": "KeyName" },
           "SSHSecurityGroup" : { "Ref": "SSHSecurityGroup" },
           "VPC": { "Ref": "VPC" },
-          "AccessKey": {"Ref": "HostKeys"},
-          "SecretKey": {"Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ]},
           "Subnet": { "Ref": "PublicSubnetA" },
-          "AnalyticsENI": {"Ref": "AnalyticsENI"},
-          "AnalyticsSubdomain": {"Ref": "AnalyticsSubdomain"},
-          "InternalDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", "int", ".", {"Ref" : "HostedZone"}]]},
-          "AnalyticsIP": {"Fn::GetAtt" : [ "AnalyticsENI", "PrimaryPrivateIpAddress" ]}
+          "AccessKey": { "Ref": "HostKeys" },
+          "SecretKey": { "Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ]},
+          "PrimaryENI": { "Ref": "BackendPrimaryENI" },
+          "FailoverENI": { "Ref": "BackendFailoverENI" },
+          "VIP": { "Ref": "BackendVIP" },
+          "VIPInternalDNS": { "Fn::Join" : [ "", ["chef-vip", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "PrimaryIP": { "Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ] },
+          "PrimaryInternalDNS": { "Fn::Join" : [ "", ["chef-be-primary", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FailoverIP": { "Fn::GetAtt" : [ "BackendFailoverENI", "PrimaryPrivateIpAddress" ] },
+          "FailoverInternalDNS": { "Fn::Join" : [ "", ["chef-be-failover", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FE01DNS": { "Fn::Join" : [ "", ["chef-fe-01", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FE02DNS": { "Fn::Join" : [ "", ["chef-fe-02", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "FE01IP": { "Fn::GetAtt" : [ "FE01ENI", "PrimaryPrivateIpAddress" ] },
+          "FE02IP": { "Fn::GetAtt" : [ "FE02ENI", "PrimaryPrivateIpAddress" ] },
+          "HostedZone": { "Ref": "HostedZone" },
+          "HostedSubdomain": { "Ref": "ChefSubdomain" },
+          "BackendEBSID": { "Ref" : "BackendEBS" },
+          "HACookbookGit": { "Ref": "HACookbookGit" },
+          "AnalyticsSubdomain": { "Ref": "AnalyticsSubdomain" },
+          "AnalyticsInternalDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "AnalyticsDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", { "Ref" : "HostedZone" } ] ] },
+          "AnalyticsIP": { "Fn::GetAtt" : [ "AnalyticsENI", "PrimaryPrivateIpAddress" ] }
        },
       "TimeoutInMinutes" : "15"
       }
