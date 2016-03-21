@@ -114,10 +114,55 @@
       "Default": "",
       "ConstraintDescription": "Git Clone URI for Cookbook"
     },
+    "CitadelBucket": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Enter S3 bucket name for all Citadel items"
+    },
+    "RestoreFile": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Enter Filename to restore backup from in backup bucket (Optional)"
+    },
+    "SignupDisable": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Enter True/False for signup disable (false by default)"
+    },
+    "SupportEmail": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Enter Support Email for Chef Server (Optional)"
+    },
+    "MailHost": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Enter Mail Host (Optional)"
+    },
+    "MailPort": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Enter Port for Mail Host (Optional)"
+    },
+    "LicenseCount": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Enter how many licenses you have purchased"
+    },
+    "EBSMountPath": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Enter EC2 Mount Point for Backend EBS Device"
+    },
     "UserDataScript": {
       "Type": "String",
       "Default": "",
       "ConstraintDescription": "URL for userdata script"
+    },
+    "BackupEnable": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Select True/False if you wanted to enable backups"
     },
     "AnalyticsSubdomain": {
       "Type": "String",

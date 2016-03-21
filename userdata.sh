@@ -2,30 +2,40 @@
 
 #### UserData Chef HA Helper Script
 ### Script Params, exported in Cloudformation
-# ${BUILD_DATA} == BuildInfo
-# ${WAITHANDLE} == WaitHandle
+# ${BUILD_DATA} == BuildInfo/${1} from Cloudformation
+# ${WAIT_HANDLE} == WaitHandle
 # ${REGION} == AWS::Region
-# ${ACCESS_KEY} == AccessKey
-# ${SECRET_KEY} == SecretKey
+# ${ACCESS_KEY} == AccessKey && ['aws_access_key_id']
+# ${SECRET_KEY} == SecretKey && ['aws_secret_access_key']
 # ${ENI} == ENI
 # ${VIP} == VIP
 # ${DNS} == DNS for Node
-# ${PRIMEDNS} == PrimaryInternalDNS
-# ${PRIMEIP} == PrimaryIP
-# ${FAILDNS} == FailoverInternalDNS
-# ${FAILIP} == FailoverIP
-# ${VIPDNS} == VIPInternalDNS
-# ${FE01DNS} == FE01DNS
-# ${FE01IP} == FE01IP
-# ${FE02DNS} == FE02DNS
-# ${FE02IP} == FE02IP
-# ${DOMAIN} == HostedZone
+# ${PRIMARY_DNS} == PrimaryInternalDNS
+# ${PRIMARY_IP} == PrimaryIP
+# ${FAIL_DNS} == FailoverInternalDNS
+# ${FAIL_IP} == FailoverIP
+# ${VIP_DNS} == VIPInternalDNS
+# ${FE01_DNS} == FE01DNS
+# ${FE01_IP} == FE01IP
+# ${FE02_DNS} == FE02DNS
+# ${FE02_IP} == FE02IP
+# ${DOMAIN} == HostedZone && ['domain']
 # ${SUBDOMAIN} == HostedSubdomain
-# ${EBSID} == BackendEBSID
+# ${EBS_ID} == BackendEBSID && ['ebs_volume_id']
+# ${EBS_MOUNT_PATH} == EBSMountPath &&  ['ebs_device']
+# ${BACKUP_BUCKET} ==  && ['s3']['backup_bucket']
+# ${BACKUP_ENABLE} == BackupEnable && ['backup']['enable_backups']
+# ${RESTORE_FILE} == RestoreFile && ['backup']['restore_file']
+# ${CITADEL_BUCKET} == CitadelBucket && ['citadel']['bucket']
 # ${COOKBOOK} == HACookbookGit
-# ${ANALYTICSSUB} == AnalyticsSubdomain
-# ${ANALYTICSDNS} == AnalyticsDNS
-# ${ANALYTICSIP} == AnalyticsIP
+# ${SIGNUP_DISABLE} == SignupDisable && ['manage']['signupdisable']
+# ${SUPPORT_EMAIL} == SupportEmail && ['manage']['supportemail']
+# ${MAIL_HOST} == MailHost && ['mail']['relayhost']
+# ${MAIL_PORT} == MailPort && ['mail']['relayport']
+# ${LICENSE_COUNT} == LicenseCount && ['licensecount']
+# ${ANALYTICS_SUBDOMAIN} == AnalyticsSubdomain && ['analytics']['stage_subdomain']
+# ${ANALYTICS_DNS} == AnalyticsDNS && ['analytics']['fqdn']
+# ${ANALYTICS_IP} == AnalyticsIP && ['analytics']['ip_address']
 # ${ROLE} == Role (primary|failover|frontend|analytics)
 ###
 
@@ -55,7 +65,7 @@ echo "aws_secret_access_key=${SECRET_KEY}" >> /root/.aws/credentials
 # Helper function to set wait timer
 function error_exit
 {
-  /usr/local/bin/cfn-signal -e 1 -r ${BUILD_DATA} ${WAITHANDLE}
+  /usr/local/bin/cfn-signal -e 1 -r ${BUILD_DATA} ${WAIT_HANDLE}
   exit 1
 }
 
@@ -87,45 +97,63 @@ fi
 cat > "/root/.chef/${ROLE}.json" << EOF
 {
   "citadel": {
+     "bucket": "${CITADEL_BUCKET}"
      "access_key_id": "${ACCESS_KEY}",
      "secret_access_key": "${SECRET_KEY}"
   },
   "cf_ha_chef": {
-     "backup_restore": false,
-     "backendprimary": {
-         "fqdn":  "${PRIMEDNS}",
-         "ip_address": "${PRIMEIP}"
+    "backup": {
+      "restore": false,
+      "enable_backups": ${BACKUP_ENABLE}
+      "restore_file": "${RESTORE_FILE}"
+    }
+    "licensecount": "${LICENSE_COUNT}",
+    "manage": {
+     "signupdisable": ${SIGNUP_DISABLE},
+     "supportemail": "${SUPPORT_EMAIL}"
+    }
+    "mail": {
+     "relayhost": "${MAIL_HOST}",
+     "relayport": "${MAIL_PORT}"
+    }
+    "s3": {
+     "backup_bucket": "${BACKUP_BUCKET}"
+    }
+    "backendprimary": {
+       "fqdn":  "${PRIMARY_DNS}",
+       "ip_address": "${PRIMARY_IP}"
+    },
+    "backendfailover": {
+       "fqdn": "${FAIL_DNS}",
+       "ip_address": "${FAIL_IP}"
+    },
+    "backend_vip": {
+         "fqdn": "${VIP_DNS}",
+         "ip_address": "${VIP}"
+    },
+    "frontends": {
+     "fe01": {
+         "fqdn": "${FE01_DNS}",
+         "ip_address": "${FE01_IP}"
      },
-     "backendfailover": {
-         "fqdn": "${FAILDNS}",
-         "ip_address": "${FAILIP}"
-     },
-     "backend_vip": {
-           "fqdn": "${VIPDNS}",
-           "ip_address": "${VIP}"
-     },
-     "frontends": {
-       "fe01": {
-           "fqdn": "${FE01DNS}",
-           "ip_address": "${FE01IP}"
-       },
-       "fe02": {
-           "fqdn": "${FE02DNS}",
-           "ip_address": "${FE02IP}"
-       }
-     },
-     "analytics": {
-       "url":  "chef-analytics.${DOMAIN}",
-       "stage_subdomain": "${ANALYTICSSUB}.${DOMAIN}",
-       "fqdn": "${ANALYTICSDNS}",
-       "ip_address": "${ANALYTICSIP}"
-     },
-     "api_fqdn": "chef.${DOMAIN}",
-     "domain":  "${DOMAIN}",
-     "stage_subdomain": "${SUBDOMAIN}",
-     "aws_access_key_id": "${ACCESS_KEY}",
-     "aws_secret_access_key": "${SECRET_KEY}",
-     "ebs_volume_id": "${EBSID}"
+     "fe02": {
+         "fqdn": "${FE02_DNS}",
+         "ip_address": "${FE02_IP}"
+     }
+    },
+    "analytics": {
+     "url":  "chef-analytics.${DOMAIN}",
+     "stage_subdomain": "${ANALYTICS_SUBDOMAIN}.${DOMAIN}",
+     "fqdn": "${ANALYTICS_DNS}",
+     "ip_address": "${ANALYTICS_IP}"
+    },
+    "api_fqdn": "chef.${DOMAIN}",
+    "domain":  "${DOMAIN}",
+    "stage_subdomain": "${SUBDOMAIN}",
+    "aws_access_key_id": "${ACCESS_KEY}",
+    "aws_secret_access_key": "${SECRET_KEY}",
+    "ebs_volume_id": "${EBS_ID}",
+    "ebs_device": "${EBS_DEVICE}"
   }
   "run_list": [
     "recipe[cf_ha_chef::${ROLE}]"
@@ -154,4 +182,4 @@ su -l -c `export BERKSHELF_PATH=/root/.chef && /opt/chef/embedded/bin/berks vend
 su -l -c `chef-client -c '/root/.chef/client.rb' -z --chef-zero-port 8899 -j "/root/.chef/${ROLE}.json"` || error_exit 'Failed to run chef-client'
 
 # All is well so signal success and let CF know wait function is complete
-/usr/local/bin/cfn-signal -e 0 -r "Chef Setup Complete" \'${WAITHANDLE}\'
+/usr/local/bin/cfn-signal -e 0 -r "Chef Setup Complete" \'${WAIT_HANDLE}\'

@@ -29,10 +29,46 @@
         "Default": "10.0.0.10",
         "Description": "Enter Backend VIP"
     },
-    "ChefBucket": {
+    "CitadelBucket": {
         "Type": "String",
-        "Default": "/bucket/chef-stuff",
-        "Description": "Enter S3 Location for all the items needed from S3"
+        "Default": "chef-ha-citadel",
+        "Description": "Enter S3 bucket name for all Citadel items"
+    },
+    "RestoreFile": {
+        "Type": "String",
+        "Default": "backup_$date",
+        "Description": "Enter Filename to restore backup from in backup bucket (Optional)"
+    },
+    "SignupDisable": {
+        "Type": "String",
+        "Default": "true",
+        "AllowedValues": ["true", "false"],
+        "Description": "Enter True/False for signup disable (false by default)"
+    },
+    "SupportEmail": {
+        "Type": "String",
+        "Default": "atat@hearst.com",
+        "Description": "Enter Support Email for Chef Server (Optional)"
+    },
+    "MailHost": {
+        "Type": "String",
+        "Default": "smtp.mailgun.org",
+        "Description": "Enter Mail Host (Optional)"
+    },
+    "MailPort": {
+        "Type": "String",
+        "Default": "587",
+        "Description": "Enter Port for Mail Host (Optional)"
+    },
+    "LicenseCount": {
+        "Type": "String",
+        "Default": "25",
+        "Description": "Enter how many licenses you have purchased"
+    },
+    "EBSMountPath": {
+        "Type": "String",
+        "Default": "/dev/xvdf",
+        "Description": "Enter EC2 Mount Point for Backend EBS Device"
     },
     "HACookbookGit": {
         "Type": "String",
@@ -68,11 +104,11 @@
        "Default": "https://github.com/HearstAT/cloudformation-chef-ha/blob/master/userdata.sh",
        "Description" : "URL for userdata script to run"
     },
-    "BackupScript": {
+    "BackupEnable": {
       "Type": "String",
        "Default": "true",
        "AllowedValues": ["true", "false"],
-       "Description" : "Select True/False if you have a chef backup script"
+       "Description" : "Select True/False if you wanted to enable backups"
     },
     "VPC": {
         "Description" : "Choose VPC to use",
@@ -373,7 +409,7 @@
         "UserName" : { "Ref": "ChefServerUser" }
       }
     },
-    "ChefBucket" : {
+    "BackupBucket" : {
       "Type" : "AWS::S3::Bucket",
       "Properties" : {
         "AccessControl" : "Private",
@@ -559,7 +595,17 @@
           "HostedZone": { "Ref": "HostedZone" },
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
+          "EBSMountPath": { "Ref" : "EBSMountPath" },
+          "BackupBucket": { "Ref" : "BackupBucket" },
+          "BackupEnable": { "Ref" : "BackupEnable" },
+          "RestoreFile": { "Ref" : "RestoreFile" },
+          "CitadelBucket": { "Ref" : "CitadelBucket" },
           "HACookbookGit": { "Ref": "HACookbookGit" },
+          "SignupDisable": { "Ref": "SignupDisable" },
+          "SupportEmail": { "Ref": "SupportEmail" },
+          "MailHost": { "Ref": "MailHost" },
+          "MailPort": { "Ref": "MailPort" },
+          "LicenseCount": { "Ref": "LicenseCount" },
           "UserDataScript": { "Ref": "UserDataScript" },
           "AnalyticsSubdomain": { "Ref": "AnalyticsSubdomain" },
           "AnalyticsInternalDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
@@ -683,7 +729,17 @@
           "HostedZone": { "Ref": "HostedZone" },
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
+          "EBSMountPath": { "Ref" : "EBSMountPath" },
+          "BackupBucket": { "Ref" : "BackupBucket" },
+          "BackupEnable": { "Ref" : "BackupEnable" },
+          "RestoreFile": { "Ref" : "RestoreFile" },
+          "CitadelBucket": { "Ref" : "CitadelBucket" },
           "HACookbookGit": { "Ref": "HACookbookGit" },
+          "SignupDisable": { "Ref": "SignupDisable" },
+          "SupportEmail": { "Ref": "SupportEmail" },
+          "MailHost": { "Ref": "MailHost" },
+          "MailPort": { "Ref": "MailPort" },
+          "LicenseCount": { "Ref": "LicenseCount" },
           "UserDataScript": { "Ref": "UserDataScript" },
           "AnalyticsSubdomain": { "Ref": "AnalyticsSubdomain" },
           "AnalyticsInternalDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
@@ -762,11 +818,21 @@
           "HostedZone": { "Ref": "HostedZone" },
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
+          "EBSMountPath": { "Ref" : "EBSMountPath" },
+          "BackupBucket": { "Ref" : "BackupBucket" },
+          "BackupEnable": { "Ref" : "BackupEnable" },
+          "RestoreFile": { "Ref" : "RestoreFile" },
+          "CitadelBucket": { "Ref" : "CitadelBucket" },
           "HACookbookGit": { "Ref": "HACookbookGit" },
+          "SignupDisable": { "Ref": "SignupDisable" },
+          "SupportEmail": { "Ref": "SupportEmail" },
+          "MailHost": { "Ref": "MailHost" },
+          "MailPort": { "Ref": "MailPort" },
+          "LicenseCount": { "Ref": "LicenseCount" },
           "UserDataScript": { "Ref": "UserDataScript" },
           "AnalyticsSubdomain": { "Ref": "AnalyticsSubdomain" },
-          "AnalyticsInternalDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
-          "AnalyticsDNS": { "Fn::Join" : [ "", ["chef-analytics", ".", { "Ref" : "HostedZone" } ] ] },
+          "AnalyticsInternalDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
+          "AnalyticsDNS": { "Fn::Join" : [ "", [ "chef-analytics", ".", { "Ref" : "HostedZone" } ] ] },
           "AnalyticsIP": { "Fn::GetAtt" : [ "AnalyticsENI", "PrimaryPrivateIpAddress" ] }
        },
       "TimeoutInMinutes" : "15"
