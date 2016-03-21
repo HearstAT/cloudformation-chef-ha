@@ -34,6 +34,11 @@
         "Default": "chef-ha-citadel",
         "Description": "Enter S3 bucket name for all Citadel items"
     },
+    "BackupBucket": {
+        "Type": "String",
+        "Default": "chef-ha-backup",
+        "Description": "Enter S3 bucket name for chef backups & primary backened generated items"
+    },
     "RestoreFile": {
         "Type": "String",
         "Default": "backup_$date",
@@ -409,11 +414,11 @@
         "UserName" : { "Ref": "ChefServerUser" }
       }
     },
-    "BackupBucket" : {
+    "ChefBucket" : {
       "Type" : "AWS::S3::Bucket",
       "Properties" : {
         "AccessControl" : "Private",
-        "BucketName" : "chef-backup"
+        "BucketName" : { "Ref": "BackupBucket" }
       }
     },
     "BackendPrimaryENI" : {
