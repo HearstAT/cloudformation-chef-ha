@@ -847,7 +847,7 @@
   "Outputs": {
     "BackupRestoreCommand": {
       "Description" : "Command to run if needing to restore from a backup",
-      "Value" : { "Fn::Join" : [ " ", ["ssh", "-tt", "ubuntu@", { "Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ] }, "'chef-client -c '/root/.chef/client.rb' -z --chef-zero-port 8899 -j /root/.chef/primary_post_restore.json.json'" ] ] }
+      "Value" : { "Fn::Join" : [ "", ["ssh", " -tt", " ubuntu@", { "Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ] }, " 'chef-client -c '/root/.chef/client.rb' -z --chef-zero-port 8899 -j /root/.chef/primary_post_restore.json.json'" ] ] }
     }
   }
 }
