@@ -321,7 +321,7 @@
                 "export SECRET_KEY=", {"Ref" : "SecretKey" } ," \n ",
                 "export ENI=", {"Ref" : "FailoverENI" } ," \n ",
                 "export VIP=", {"Ref" : "VIP" } ," \n ",
-                "export DNS=", {"Ref" : "PrimaryInternalDNS" } ," \n ",
+                "export DNS=", {"Ref" : "FailoverInternalDNS" } ," \n ",
                 "export PRIMARY_DNS=", {"Ref" : "PrimaryInternalDNS" } ," \n ",
                 "export PRIMARY_IP=", {"Ref" : "PrimaryIP" } ," \n ",
                 "export FAIL_DNS=", {"Ref" : "FailoverInternalDNS" } ," \n ",

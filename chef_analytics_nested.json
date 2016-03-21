@@ -226,7 +226,7 @@
           "export SECRET_KEY=", {"Ref" : "SecretKey" } ," \n ",
           "export ENI=", {"Ref" : "AnalyticsENI" } ," \n ",
           "export VIP=", {"Ref" : "VIP" } ," \n ",
-          "export DNS=", {"Ref" : "PrimaryInternalDNS" } ," \n ",
+          "export DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
           "export PRIMARY_DNS=", {"Ref" : "PrimaryInternalDNS" } ," \n ",
           "export PRIMARY_IP=", {"Ref" : "PrimaryIP" } ," \n ",
           "export FAIL_DNS=", {"Ref" : "FailoverInternalDNS" } ," \n ",
