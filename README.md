@@ -1,4 +1,6 @@
 # ha-chef-stack
+##Note **This is a work in progress**
+
 Cloudformation Templates to setup our HA Chef Stack
 
 This requires the use of [cf_ha_chef](https://github.com/HearstAT/cf_ha_chef) cookbook to function.
@@ -23,19 +25,16 @@ This is a nested template setup that installs Frontends, Backends, and a stand a
 - IP Scheme (To create static VIP)
 - SSH Security Group
 - At least two subnets in different availability zones
-- Citadel Chef Bucket w/ the following
-  - `newrelic` folder with (optional, will just fail to start)
-  - `sumologic` folder with (optional, will just fail to start)
-  - `certs` folder with (Required for Blue/Green deployment)
-  - `mail` folder with (optional, mail will not work)
+- Citadel Chef Bucket w/ the following necessary items (See [Citadel Section](##Citadel/Secrets Config) for more Info)
 
 ## Parameters
 - HostedZone
 - ChefSubdomain
 - AnalyticsSubdomain
-- SSLCertificateARN
+- SSLCertificateARN (See [here](http://docs.aws.amazon.com/cli/latest/reference/iam/index.html#cli-aws-iam) on how to get the Cert ARN)
+  - `aws iam get-server-certificate --server-certificate-name`
 - BackendVIP
-- CitadelBucket
+- CitadelBucket (See [Citadel Section](##Citadel/Secrets Config))
 - RestoreFile (optional)
 - SignupDisable (True/False)
 - SupportEmail (Optional)
@@ -43,10 +42,10 @@ This is a nested template setup that installs Frontends, Backends, and a stand a
 - MailPort (Optional)
 - LicenseCount (Optional, default 25)
 - EBSMountPath (Optional, `/dev/xvdf` is default)
-- HACookbookGit
-- BackendTemplateURL
-- FrontendTemplateURL
-- AnalyticsTemplateURL
+- HACookbookGit (URL for [cf_ha_chef](https://github.com/HearstAT/cf_ha_chef))
+- BackendTemplateURL (URL for the chef_backends_nested.json in this repo)
+- FrontendTemplateURL (URL for the chef_frontends_nested.json in this repo)
+- AnalyticsTemplateURL (URL for the chef_analytics_nested.json in this repo)
 - KeyName
 - SSHSecurityGroup
 - UserDataScript (URL for the `userdata.sh` script in this repo)
@@ -57,3 +56,58 @@ This is a nested template setup that installs Frontends, Backends, and a stand a
 - AnalyticsInstanceType
 - BackendInstanceType
 - FrontendInstanceType
+
+## Citadel/Secrets Config
+You'll need to configure some S3 items before hand.
+
+1. A Bucket to be passed into the Params listed above.
+2. Create the following folders
+  - `newrelic` folder with (optional, will just fail to start)
+  - `sumologic` folder with (optional, will just fail to start)
+  - `certs` folder with (Required for Blue/Green deployment)
+  - `mail` folder with (optional, mail will not work)
+
+### New Relic
+If using New Relic you'll need the following file(s) (case-sensitive)
+* license_key
+  * Content:
+  ```
+  $licensekey
+  ```
+
+### Sumologic
+If using Sumologic you'll need the following file(s) (case-sensitive)
+* accessID
+  * Content:
+  ```
+  $accessID
+  ```
+* accessKey
+  * Content:
+  ```
+  $accessKey
+  ```
+* password
+  * Content:
+  ```
+  $password
+  ```
+### Certs
+If using Sumologic you'll need the following file(s) (case-sensitive)
+* chefserver.crt
+  * Content:
+  ```
+  $cert # Can also be a cert bundle with the CA included
+  ```
+* chefserver.key
+  * Content:
+  ```
+  $privatekey
+  ```
+### Mail
+If using Sumologic you'll need the following file(s) (case-sensitive)
+* sasl_passwd
+  * Content:
+  ```
+  mail.server.com $username:$password
+  ```
