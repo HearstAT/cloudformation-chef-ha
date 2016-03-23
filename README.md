@@ -25,7 +25,7 @@ This is a nested template setup that installs Frontends, Backends, and a stand a
 - IP Scheme (To create static VIP)
 - SSH Security Group
 - At least two subnets in different availability zones
-- Citadel Chef Bucket w/ the following necessary items (See [Citadel Section](#Citadel/Secrets Config) for more Info)
+- Citadel Chef Bucket w/ the following necessary items (See [Citadel Section](#citadelsecrets-config) for more Info)
 
 ## Parameters
 - HostedZone
@@ -34,7 +34,7 @@ This is a nested template setup that installs Frontends, Backends, and a stand a
 - SSLCertificateARN (See [here](http://docs.aws.amazon.com/cli/latest/reference/iam/index.html#cli-aws-iam) on how to get the Cert ARN)
   - `aws iam get-server-certificate --server-certificate-name`
 - BackendVIP
-- CitadelBucket (See [Citadel Section](#Citadel/Secrets Config))
+- CitadelBucket (See [Citadel Section](#citadelsecrets-config))
 - RestoreFile (optional)
 - SignupDisable (True/False)
 - SupportEmail (Optional)
