@@ -244,6 +244,7 @@
                 "apt-get install -y wget curl python-setuptools python-pip git\n",
                 "mkdir -p /user-init/ \n",
                 "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
+                "chmod +x /user-init/userdata.sh \n",
                 "export BUILD_DATA=${1}\n",
                 "export WAIT_HANDLE=", { "Ref" : "PrimaryWaitHandle" },"\n",
                 "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
@@ -279,7 +280,7 @@
                 "export ANALYTICS_DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
                 "export ANALYTICS_IP=", {"Ref" : "AnalyticsIP" } ," \n ",
                 "export ROLE=primary \n ",
-                "su -l -c `/user-init/userdata.sh`"
+                "/user-init/userdata.sh"
               ]
             ]
           }
@@ -314,6 +315,7 @@
                 "apt-get install -y wget curl python-setuptools python-pip git\n",
                 "mkdir -p /user-init/ \n",
                 "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
+                "chmod +x /user-init/userdata.sh \n",
                 "export BUILD_DATA=${1}\n",
                 "export WAIT_HANDLE=", { "Ref" : "FailoverWaitHandle" },"\n",
                 "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
@@ -349,7 +351,7 @@
                 "export ANALYTICS_DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
                 "export ANALYTICS_IP=", {"Ref" : "AnalyticsIP" } ," \n ",
                 "export ROLE=failover \n ",
-                "su -l -c `/user-init/userdata.sh`"
+                "/user-init/userdata.sh"
               ]
             ]
           }

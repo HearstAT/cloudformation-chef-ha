@@ -178,8 +178,9 @@ EOF
 # Clone the CF companion cookbook
 git clone ${COOKBOOK}
 
-su -l -c `export BERKSHELF_PATH=/root/.chef && /opt/chef/embedded/bin/berks vendor -b /root/.chef/cf_ha_chef/Berksfile` || error_exit 'Berks Vendor failed to run'
-su -l -c `chef-client -c '/root/.chef/client.rb' -z --chef-zero-port 8899 -j "/root/.chef/${ROLE}.json"` || error_exit 'Failed to run chef-client'
+export BERKSHELF_PATH=/root/.chef
+/opt/chef/embedded/bin/berks vendor -b /root/.chef/cf_ha_chef/Berksfile || error_exit 'Berks Vendor failed to run'
+sudo su -l -c "chef-client -c '/root/.chef/client.rb' -z --chef-zero-port 8899 -j "/root/.chef/${ROLE}.json"" || error_exit 'Failed to run chef-client'
 
 # All is well so signal success and let CF know wait function is complete
 /usr/local/bin/cfn-signal -e 0 -r "Chef Setup Complete" \'${WAIT_HANDLE}\'
