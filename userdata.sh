@@ -2,8 +2,6 @@
 
 #### UserData Chef HA Helper Script
 ### Script Params, exported in Cloudformation
-# ${BUILD_DATA} == BuildInfo/${1} from Cloudformation
-# ${WAIT_HANDLE} == WaitHandle
 # ${REGION} == AWS::Region
 # ${ACCESS_KEY} == AccessKey && ['aws_access_key_id']
 # ${SECRET_KEY} == SecretKey && ['aws_secret_access_key']
@@ -62,13 +60,6 @@ echo '[default]' >> /root/.aws/credentials
 echo "aws_access_key_id=${ACCESS_KEY}" >> /root/.aws/credentials
 echo "aws_secret_access_key=${SECRET_KEY}" >> /root/.aws/credentials
 
-# Helper function to set wait timer
-function error_exit
-{
-  /usr/local/bin/cfn-signal -e 1 -r ${BUILD_DATA} ${WAIT_HANDLE}
-  exit 1
-}
-
 # Set hostname
 hostname  ${DNS}  || error_exit 'Failed to set hostname'
 echo  ${DNS}  > /etc/hostname || error_exit 'Failed to set hostname file'
@@ -97,28 +88,28 @@ fi
 cat > "/root/.chef/${ROLE}.json" << EOF
 {
   "citadel": {
-     "bucket": "${CITADEL_BUCKET}"
+     "bucket": "${CITADEL_BUCKET}",
      "access_key_id": "${ACCESS_KEY}",
      "secret_access_key": "${SECRET_KEY}"
   },
   "cf_ha_chef": {
     "backup": {
       "restore": false,
-      "enable_backups": ${BACKUP_ENABLE}
+      "enable_backups": "${BACKUP_ENABLE}",
       "restore_file": "${RESTORE_FILE}"
-    }
+    },
     "licensecount": "${LICENSE_COUNT}",
     "manage": {
      "signupdisable": ${SIGNUP_DISABLE},
      "supportemail": "${SUPPORT_EMAIL}"
-    }
+    },
     "mail": {
      "relayhost": "${MAIL_HOST}",
      "relayport": "${MAIL_PORT}"
-    }
+    },
     "s3": {
      "backup_bucket": "${BACKUP_BUCKET}"
-    }
+    },
     "backendprimary": {
        "fqdn":  "${PRIMARY_DNS}",
        "ip_address": "${PRIMARY_IP}"
@@ -181,6 +172,3 @@ git clone ${COOKBOOK}
 export BERKSHELF_PATH=/root/.chef
 /opt/chef/embedded/bin/berks vendor -b /root/.chef/cf_ha_chef/Berksfile || error_exit 'Berks Vendor failed to run'
 sudo su -l -c "chef-client -c '/root/.chef/client.rb' -z --chef-zero-port 8899 -j "/root/.chef/${ROLE}.json"" || error_exit 'Failed to run chef-client'
-
-# All is well so signal success and let CF know wait function is complete
-/usr/local/bin/cfn-signal -e 0 -r "Chef Setup Complete" \'${WAIT_HANDLE}\'

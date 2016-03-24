@@ -106,7 +106,7 @@
     },
     "UserDataScript": {
       "Type": "String",
-       "Default": "https://github.com/HearstAT/cloudformation-chef-ha/blob/master/userdata.sh",
+       "Default": "https://raw.githubusercontent.com/HearstAT/cloudformation-chef-ha/master/userdata.sh",
        "Description" : "URL for userdata script to run"
     },
     "BackupEnable": {
