@@ -311,7 +311,7 @@
           "Fn::Base64" : { "Fn::Join" : ["", [
                 "#!/bin/bash -xev\n",
                 "apt-get update && apt-get -y upgrade \n",
-                "apt-get -y intall wget curl python-setuptools python-pip git\n",
+                "apt-get install -y wget curl python-setuptools python-pip git\n",
                 "mkdir -p /user-init/ \n",
                 "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
                 "export BUILD_DATA=${1}\n",
@@ -381,7 +381,7 @@
           "Fn::Base64" : { "Fn::Join" : ["", [
                 "#!/bin/bash -xev\n",
                 "apt-get update && apt-get -y upgrade \n",
-                "apt-get -y intall wget curl python-setuptools python-pip git\n",
+                "apt-get install -y wget curl python-setuptools python-pip git\n",
                 "mkdir -p /user-init/ \n",
                 "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
                 "export BUILD_DATA=${1}\n",

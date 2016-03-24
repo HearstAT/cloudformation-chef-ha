@@ -488,10 +488,10 @@
     "BackendSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
-        "GroupDescription" : "Allow access from frontend security group and bastion as well as outbound HTTP and HTTPS traffic",
+        "GroupDescription" : "Allow access from frontend security group and Analytics as well as outbound HTTP and HTTPS traffic",
         "VpcId" : { "Ref" : "VPC" },
         "SecurityGroupIngress" : [
-          { "IpProtocol" : "tcp", "FromPort" : "0", "ToPort" : "65535", "SourceSecurityGroupId" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ] } },
+          { "IpProtocol" : "tcp", "FromPort" : "0", "ToPort" : "65535", "CidrIp" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ] } },
           { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
           { "IpProtocol" : "tcp", "FromPort" : "4321", "ToPort" : "4321", "SourceSecurityGroupId" : { "Ref" : "FrontendSecurityGroup" } },
