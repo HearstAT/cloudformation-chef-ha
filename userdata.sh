@@ -144,7 +144,7 @@ cat > "/root/.chef/${ROLE}.json" << EOF
     "aws_access_key_id": "${ACCESS_KEY}",
     "aws_secret_access_key": "${SECRET_KEY}",
     "ebs_volume_id": "${EBS_ID}",
-    "ebs_device": "${EBS_DEVICE}"
+    "ebs_device": "${EBS_MOUNT_PATH}"
   },
   "run_list": [
     "recipe[cf_ha_chef::${ROLE}]"
