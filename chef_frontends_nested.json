@@ -262,7 +262,7 @@
         "Target" : "HTTPS:443/humans.txt",
         "HealthyThreshold" : "2",
         "UnhealthyThreshold" : "10",
-        "Interval" : "60",
+        "Interval" : "90",
         "Timeout" : "60"
       },
       "Tags" : [
