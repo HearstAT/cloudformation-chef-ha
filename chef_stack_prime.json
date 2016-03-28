@@ -34,11 +34,6 @@
         "Default": "chef-ha-citadel",
         "Description": "Enter S3 bucket name for all Citadel items"
     },
-    "BackupBucket": {
-        "Type": "String",
-        "Default": "chef-ha-backup",
-        "Description": "Enter S3 bucket name for chef backups & primary backened generated items"
-    },
     "RestoreFile": {
         "Type": "String",
         "Default": "backup_$date",
@@ -418,8 +413,7 @@
       "Type" : "AWS::S3::Bucket",
       "DeletionPolicy" : "Retain",
       "Properties" : {
-        "AccessControl" : "Private",
-        "BucketName" : { "Ref": "BackupBucket" }
+        "AccessControl" : "Private"
       }
     },
     "BackendPrimaryENI" : {
@@ -602,7 +596,7 @@
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "EBSMountPath": { "Ref" : "EBSMountPath" },
-          "BackupBucket": { "Ref" : "BackupBucket" },
+          "BackupBucket": { "Ref" : "ChefBucket" },
           "BackupEnable": { "Ref" : "BackupEnable" },
           "RestoreFile": { "Ref" : "RestoreFile" },
           "CitadelBucket": { "Ref" : "CitadelBucket" },
@@ -736,7 +730,7 @@
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "EBSMountPath": { "Ref" : "EBSMountPath" },
-          "BackupBucket": { "Ref" : "BackupBucket" },
+          "BackupBucket": { "Ref" : "ChefBucket" },
           "BackupEnable": { "Ref" : "BackupEnable" },
           "RestoreFile": { "Ref" : "RestoreFile" },
           "CitadelBucket": { "Ref" : "CitadelBucket" },
@@ -825,7 +819,7 @@
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "EBSMountPath": { "Ref" : "EBSMountPath" },
-          "BackupBucket": { "Ref" : "BackupBucket" },
+          "BackupBucket": { "Ref" : "ChefBucket" },
           "BackupEnable": { "Ref" : "BackupEnable" },
           "RestoreFile": { "Ref" : "RestoreFile" },
           "CitadelBucket": { "Ref" : "CitadelBucket" },
@@ -849,6 +843,10 @@
     "BackupRestoreCommand": {
       "Description" : "Command to run if needing to restore from a backup",
       "Value" : { "Fn::Join" : [ "", ["ssh", " -tt", " ubuntu@", { "Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ] }, " 'chef-client -c '/root/.chef/client.rb' -z --chef-zero-port 8899 -j /root/.chef/primary_post_restore.json.json'" ] ] }
+    },
+    "BackupBucket" : {
+      "Description" : "Bucket that all chef backups will be stored",
+      "Value" : { "Ref": "ChefBucket" }
     }
   }
 }
