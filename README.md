@@ -8,22 +8,22 @@ This requires the use of [cf_ha_chef](https://github.com/HearstAT/cf_ha_chef) co
 This is a nested template setup that installs Frontends, Backends, and a stand alone Analytics server.
 
 ## Info
-- Built to utilize Ubuntu
+- Built to utilize Ubuntu Trusty
 - Uses Chef APT Repo for packages
 - Sets up two backends to utilize keepalived and HA config
 
 ## What's Setup
 * A Primary and Failover Backend, with EBS on Primary
-* 2 Front Ends with a Stage file to allow setting up a seconday Domain for Blue/Green Deployments
+* 2 Front Ends with a Stage file to allow setting up a secondary Subdomain/Domain for Blue/Green Deployments
 * 1 Stand alone Analytics server
 * All the items required by from the Backend Primary server will be generated first during that config, then distributed via S3 bucket.
 
 ## Requirements
 - Existing VPC
 - Route53 Hosted Domain/Zone
-- Existing SSL Certificate (Loaded into AWS)
+- Existing SSL Certificate (Loaded into AWS) (will be copied to citadel location as chefserver.crt/.key)
 - IP Scheme (To create static VIP)
-- SSH Security Group
+- SSH Security Group (Will lookup existing groups in AWS, make sure one exists)
 - At least two subnets in different availability zones
 - Citadel Chef Bucket w/ the following necessary items (See [Citadel Section](#citadelsecrets-config) for more Info)
 
@@ -49,7 +49,7 @@ This is a nested template setup that installs Frontends, Backends, and a stand a
 - KeyName
 - SSHSecurityGroup
 - UserDataScript (URL for the `userdata.sh` script in this repo)
-- BackupScript (True/False Option, enables a backup script that will run `knife ec` daily and copy to a S3 bucket, keeps only 10 days worth)
+- BackupEnable (True/False Option, enables a backup script that will run `knife ec` daily and copy to a S3 bucket, keeps only 10 days worth)
 - VPC
 - AvailabilityZoneA
 - AvailabilityZoneB
