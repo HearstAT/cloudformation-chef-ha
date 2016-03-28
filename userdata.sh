@@ -77,7 +77,7 @@ if [ ${ROLE} == 'primary' ] || [ ${ROLE} == 'failover' ]; then
   apt-get install -y chef-ha chef-server-core
 elif [ ${ROLE} == 'frontend' ]; then
   apt-get install -y chef-manage chef-server-core
-elif [ ${ROLE}] == 'analytics' ]; then
+elif [ ${ROLE} == 'analytics' ]; then
   apt-get install -y opscode-analytics
 else
   error_exit 'Role not found'
