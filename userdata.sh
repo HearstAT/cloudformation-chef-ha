@@ -95,7 +95,7 @@ cat > "/root/.chef/${ROLE}.json" << EOF
   "cf_ha_chef": {
     "backup": {
       "restore": false,
-      "enable_backups": "${BACKUP_ENABLE}",
+      "enable_backups": ${BACKUP_ENABLE},
       "restore_file": "${RESTORE_FILE}"
     },
     "licensecount": "${LICENSE_COUNT}",
@@ -157,7 +157,7 @@ EOF
 
 # Primary Only: Copy post install json and swap attribute to true if needed
 if [ ${ROLE} == 'primary' ]; then
-  cp /root/.chef/${ROLE}.json /root/.chef/${ROLE}_post_restore.json && sed -i 's/false/true/g' /root/.chef/${ROLE}_post_restore.json
+  cp /root/.chef/${ROLE}.json /root/.chef/${ROLE}_post_restore.json && sed -i 's/\"restore\": false/\"restore\": true/g' /root/.chef/${ROLE}_post_restore.json
 fi
 
 # Switch to main directory
