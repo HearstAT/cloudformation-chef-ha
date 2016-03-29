@@ -393,6 +393,12 @@
           "Handle" : { "Ref" : "FailoverWaitHandle" },
           "Timeout" : "1600"
         }
+    },
+    "Outputs": {
+      "PrimaryPublicIP" : {
+        "Description" : "Command to run if needing to restore from a backup",
+        "Value" : { "Fn::GetAtt" : [ "BackendPrimaryEC2Instance", "PublicIp" ] }
+      }
     }
   }
 }
