@@ -13,28 +13,30 @@ This is a nested template setup that installs Frontends, Backends, and a stand a
 - Sets up two backends to utilize keepalived and HA config
 
 ## What's Setup
+Please see the wiki [here](https://github.com/HearstAT/cloudformation-chef-ha/wiki/Build-Steps-Process) for more specific info
 * A Primary and Failover Backend, with EBS on Primary
 * 2 Front Ends with a Stage file to allow setting up a secondary Subdomain/Domain for Blue/Green Deployments
 * 1 Stand alone Analytics server
 * All the items required by from the Backend Primary server will be generated first during that config, then distributed via S3 bucket.
 
 ## Requirements
+Please see the wiki [here](https://github.com/HearstAT/cloudformation-chef-ha/wiki/Prerequisites) for more specific info
 - Existing VPC
+  - IP Scheme (To create static VIP)
+  - SSH Security Group (Will lookup existing groups in AWS, make sure one exists)
 - Route53 Hosted Domain/Zone
 - Existing SSL Certificate (Loaded into AWS) (will be copied to citadel location as chefserver.crt/.key)
-- IP Scheme (To create static VIP)
-- SSH Security Group (Will lookup existing groups in AWS, make sure one exists)
-- At least two subnets in different availability zones
-- Citadel Chef Bucket w/ the following necessary items (See [Citadel Section](#citadelsecrets-config) for more Info)
+- Citadel Chef Bucket w/ the following necessary items (See [Citadel Section](https://github.com/HearstAT/cloudformation-chef-ha/wiki/Prerequisites#s3-bucket-for-citadel) for more Info)
 
 ## Parameters
+Please see the wiki [here](https://github.com/HearstAT/cloudformation-chef-ha/wiki/Parameters) for more specific info
 - HostedZone
 - ChefSubdomain
 - AnalyticsSubdomain
 - SSLCertificateARN (See [here](http://docs.aws.amazon.com/cli/latest/reference/iam/index.html#cli-aws-iam) on how to get the Cert ARN)
   - `aws iam get-server-certificate --server-certificate-name`
 - BackendVIP
-- CitadelBucket (See [Citadel Section](#citadelsecrets-config))
+- CitadelBucket (See [Citadel Section](https://github.com/HearstAT/cloudformation-chef-ha/wiki/Prerequisites#s3-bucket-for-citadel))
 - RestoreFile (optional)
 - SignupDisable (True/False)
 - SupportEmail (Optional)
@@ -56,58 +58,3 @@ This is a nested template setup that installs Frontends, Backends, and a stand a
 - AnalyticsInstanceType
 - BackendInstanceType
 - FrontendInstanceType
-
-## Citadel/Secrets Config
-You'll need to configure some S3 items before hand.
-
-1. A Bucket to be passed into the Params listed above.
-2. Create the following folders
-  - `newrelic` folder with (optional, will just fail to start)
-  - `sumologic` folder with (optional, will just fail to start)
-  - `certs` folder with (Required for Blue/Green deployment)
-  - `mail` folder with (optional, mail will not work)
-
-### New Relic
-If using New Relic you'll need the following file(s) (case-sensitive)
-* license_key
-  * Content:
-  ```
-  $licensekey
-  ```
-
-### Sumologic
-If using Sumologic you'll need the following file(s) (case-sensitive)
-* accessID
-  * Content:
-  ```
-  $accessID
-  ```
-* accessKey
-  * Content:
-  ```
-  $accessKey
-  ```
-* password
-  * Content:
-  ```
-  $password
-  ```
-### Certs
-If using Sumologic you'll need the following file(s) (case-sensitive)
-* chefserver.crt
-  * Content:
-  ```
-  $cert # Can also be a cert bundle with the CA included
-  ```
-* chefserver.key
-  * Content:
-  ```
-  $privatekey
-  ```
-### Mail
-If using Sumologic you'll need the following file(s) (case-sensitive)
-* sasl_passwd
-  * Content:
-  ```
-  mail.server.com $username:$password
-  ```
