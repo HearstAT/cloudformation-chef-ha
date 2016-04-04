@@ -1,5 +1,4 @@
 # ha-chef-stack
-##Note **This is a work in progress**
 
 Cloudformation Templates to setup our HA Chef Stack
 
