@@ -8,6 +8,7 @@ This requires the use of [cf_ha_chef](https://github.com/HearstAT/cf_ha_chef) co
 This is a nested template setup that installs Frontends, Backends, and a stand alone Analytics server.
 
 ## Info
+- Builds out AWS HA Setup; [documentation](https://docs.chef.io/install_server_ha_aws.html)
 - Built to utilize Ubuntu Trusty
 - Uses Chef APT Repo for packages
 - Sets up two backends to utilize keepalived and HA config
