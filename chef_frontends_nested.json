@@ -14,6 +14,11 @@
       "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
       "Type" : "String"
     },
+    "IAMRole": {
+      "Description" : "Enter IAM Role name",
+      "Type" : "String",
+      "Default": ""
+    },
     "SSHSecurityGroup" : {
       "Description" : "Select Security Group for SSH Access",
       "Type": "String",
@@ -51,16 +56,6 @@
     },
     "FE02ENI": {
       "Description" : "Choose ENI to use",
-      "Type" : "String",
-      "Default": ""
-    },
-    "AccessKey": {
-      "Description" : "Enter User Access Key",
-      "Type" : "String",
-      "Default": ""
-    },
-    "SecretKey": {
-      "Description" : "Enter User Secret Key",
       "Type" : "String",
       "Default": ""
     },
@@ -129,12 +124,32 @@
       "Type" : "String",
       "Default": ""
     },
-    "HACookbookGit": {
-      "Type": "String",
-      "Default": "",
-      "ConstraintDescription": "Git Clone URI for Cookbook"
+    "S3Dir": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Path to mount S3 Bucket to (created during CFN run)"
     },
-    "CitadelBucket": {
+    "ChefDir": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Path to mount S3 Bucket to (created during CFN run)"
+    },
+    "Cookbook": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Cookbook Name"
+    },
+    "CookbookGit": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Git Clone URI for Cookbook"
+    },
+    "CookbookGitBranch": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Git Clone Branch"
+    },
+    "Bucket": {
       "Type": "String",
       "Default": "",
       "Description": "Enter S3 bucket name for all Citadel items"
@@ -290,6 +305,7 @@
   "FE01EC2Instance": {
     "Type": "AWS::EC2::Instance",
       "Properties": {
+        "IamInstanceProfile": { "Ref": "IAMRole" },
         "DisableApiTermination": "false",
         "InstanceInitiatedShutdownBehavior": "stop",
         "InstanceType": {"Ref": "InstanceType"},
@@ -319,12 +335,9 @@
                 "  exit 1\n",
                 "}\n",
                 "export -f error_exit\n",
-                "mkdir -p /user-init/ \n",
-                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
-                "chmod +x /user-init/userdata.sh \n",
+                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /tmp/userdata.sh\n",
+                "chmod +x /tmp/userdata.sh \n",
                 "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
-                "export ACCESS_KEY=", {"Ref" : "AccessKey" } ," \n ",
-                "export SECRET_KEY=", {"Ref" : "SecretKey" } ," \n ",
                 "export ENI=", {"Ref" : "FE01ENI" } ," \n ",
                 "export VIP=", {"Ref" : "VIP" } ," \n ",
                 "export DNS=", {"Ref" : "FE01DNS" } ," \n ",
@@ -341,13 +354,16 @@
                 "export SUBDOMAIN=", {"Ref": "HostedSubdomain"} ," \n ",
                 "export EBS_ID=", {"Ref" : "BackendEBSID" } ," \n ",
                 "export EBS_MOUNT_PATH=", {"Ref" : "EBSMountPath" } ," \n ",
-                "export BACKUP_BUCKET=", {"Ref" : "BackupBucket" } ," \n ",
+                "export BUCKET=", {"Ref" : "Bucket" } ," \n ",
                 "export BACKUP_ENABLE=", {"Ref" : "BackupEnable" } ," \n ",
                 "export RESTORE_FILE=", {"Ref" : "RestoreFile" } ," \n ",
-                "export CITADEL_BUCKET=", {"Ref" : "CitadelBucket" } ," \n ",
-                "export COOKBOOK=", {"Ref" : "HACookbookGit" } ," \n ",
+                "export CHEFDIR=", {"Ref" : "ChefDir" } ," \n ",
+                "export COOKBOOK=", {"Ref" : "Cookbook" } ," \n ",
+                "export COOKBOOK_GIT=", {"Ref" : "CookbookGit" } ," \n ",
+                "export COOKBOOK_BRANCH=", {"Ref" : "CookbookGitBranch" } ," \n ",
                 "export SIGNUP_DISABLE=", {"Ref" : "SignupDisable" } ," \n ",
                 "export SUPPORT_EMAIL=", {"Ref" : "SupportEmail" } ," \n ",
+                "export S3DIR=", {"Ref" : "S3Dir" } ," \n ",
                 "export MAIL_HOST=", {"Ref" : "MailHost" } ," \n ",
                 "export MAIL_PORT=", {"Ref" : "MailPort" } ," \n ",
                 "export LICENSE_COUNT=", {"Ref" : "LicenseCount" } ," \n ",
@@ -355,9 +371,10 @@
                 "export ANALYTICS_DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
                 "export ANALYTICS_IP=", {"Ref" : "AnalyticsIP" } ," \n ",
                 "export ROLE=frontend \n ",
-                "/user-init/userdata.sh\n",
+                "/tmp/userdata.sh\n",
                 "# All is well so signal success and let CF know wait function is complete\n",
-                "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "FE01WaitHandle" }, "'\n"
+                "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "FE01WaitHandle" }, "'\n",
+                "rm -f /tmp/userdata.sh"
               ]
             ]
           }
@@ -368,6 +385,7 @@
     "FE02EC2Instance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
+        "IamInstanceProfile": { "Ref": "IAMRole" },
         "DisableApiTermination": "false",
         "InstanceInitiatedShutdownBehavior": "stop",
         "InstanceType": {"Ref": "InstanceType"},
@@ -397,15 +415,12 @@
                 "  exit 1\n",
                 "}\n",
                 "export -f error_exit\n",
-                "mkdir -p /user-init/ \n",
-                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
-                "chmod +x /user-init/userdata.sh \n",
+                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /tmp/userdata.sh\n",
+                "chmod +x /tmp/userdata.sh \n",
                 "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
-                "export ACCESS_KEY=", {"Ref" : "AccessKey" } ," \n ",
-                "export SECRET_KEY=", {"Ref" : "SecretKey" } ," \n ",
-                "export ENI=", {"Ref" : "FE02ENI" } ," \n ",
+                "export ENI=", {"Ref" : "FE01ENI" } ," \n ",
                 "export VIP=", {"Ref" : "VIP" } ," \n ",
-                "export DNS=", {"Ref" : "FE02DNS" } ," \n ",
+                "export DNS=", {"Ref" : "FE01DNS" } ," \n ",
                 "export PRIMARY_DNS=", {"Ref" : "PrimaryInternalDNS" } ," \n ",
                 "export PRIMARY_IP=", {"Ref" : "PrimaryIP" } ," \n ",
                 "export FAIL_DNS=", {"Ref" : "FailoverInternalDNS" } ," \n ",
@@ -419,13 +434,16 @@
                 "export SUBDOMAIN=", {"Ref": "HostedSubdomain"} ," \n ",
                 "export EBS_ID=", {"Ref" : "BackendEBSID" } ," \n ",
                 "export EBS_MOUNT_PATH=", {"Ref" : "EBSMountPath" } ," \n ",
-                "export BACKUP_BUCKET=", {"Ref" : "BackupBucket" } ," \n ",
+                "export BUCKET=", {"Ref" : "Bucket" } ," \n ",
                 "export BACKUP_ENABLE=", {"Ref" : "BackupEnable" } ," \n ",
                 "export RESTORE_FILE=", {"Ref" : "RestoreFile" } ," \n ",
-                "export CITADEL_BUCKET=", {"Ref" : "CitadelBucket" } ," \n ",
-                "export COOKBOOK=", {"Ref" : "HACookbookGit" } ," \n ",
+                "export CHEFDIR=", {"Ref" : "ChefDir" } ," \n ",
+                "export COOKBOOK=", {"Ref" : "Cookbook" } ," \n ",
+                "export COOKBOOK_GIT=", {"Ref" : "CookbookGit" } ," \n ",
+                "export COOKBOOK_BRANCH=", {"Ref" : "CookbookGitBranch" } ," \n ",
                 "export SIGNUP_DISABLE=", {"Ref" : "SignupDisable" } ," \n ",
                 "export SUPPORT_EMAIL=", {"Ref" : "SupportEmail" } ," \n ",
+                "export S3DIR=", {"Ref" : "S3Dir" } ," \n ",
                 "export MAIL_HOST=", {"Ref" : "MailHost" } ," \n ",
                 "export MAIL_PORT=", {"Ref" : "MailPort" } ," \n ",
                 "export LICENSE_COUNT=", {"Ref" : "LicenseCount" } ," \n ",
@@ -433,9 +451,10 @@
                 "export ANALYTICS_DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
                 "export ANALYTICS_IP=", {"Ref" : "AnalyticsIP" } ," \n ",
                 "export ROLE=frontend \n ",
-                "/user-init/userdata.sh\n",
+                "/tmp/userdata.sh\n",
                 "# All is well so signal success and let CF know wait function is complete\n",
-                "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "FE02WaitHandle" }, "'\n"
+                "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "FE02WaitHandle" }, "'\n",
+                "rm -f /tmp/userdata.sh"
               ]
             ]
           }
