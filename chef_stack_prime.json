@@ -127,7 +127,7 @@
     },
     "AnalyticsInstanceType": {
         "Type": "String",
-        "Default": "t2.small",
+        "Default": "t2.medium",
         "AllowedValues": [
             "t2.micro",
             "t2.small",
@@ -253,6 +253,36 @@
             "cg1.4xlarge"
         ],
         "ConstraintDescription": "must be a valid EC2 instance type."
+    }
+},
+"Metadata" : {
+    "AWS::CloudFormation::Interface" : {
+        "ParameterGroups" : [
+            {
+                "Label" : {"default": "Instance & Network Configuration"},
+                "Parameters" : ["BackendInstanceType", "FrontendInstanceType", "AnalyticsInstanceType", "KeyName", "VPC", "SSHSecurityGroup", "AvailabilityZoneA", "AvailabilityZoneB", "HostedZone", "BackendVIP"]
+            },
+            {
+                "Label" : {"default": "Stack Configuration"},
+                "Parameters" : ["BackendTemplateURL", "FrontendTemplateURL", "AnalyticsTemplateURL"]
+            },
+            {
+                "Label" : {"default": "Chef Configuration"},
+                "Parameters" : ["ChefSubdomain", "AnalyticsSubdomain", "SignupDisable", "SupportEmail", "LicenseCount", "EBSMountPath", "MailHost", "MailPort", "BackupEnable", "RestoreFile"]
+            },
+            {
+                "Label" : {"default": "Secrets Configuration"},
+                "Parameters" : ["sslCRT", "sslKEY", "saslPassword", "NewRelicLicense", "SumologicAccessID", " SumologicAccessKey", "SumologicPassword"]
+            },
+            {
+                "Label" : {"default": "External Build Items"},
+                "Parameters" : ["HACookbookGit", "CookbookGitBranch", "UserDataScript"]
+            },
+            {
+                "Label" : {"default": "Letsencrypt Configuration (SSL)"},
+                "Parameters" : ["Environment", "ContactEmail"]
+            }
+        ]
     }
 },
 "Mappings" : {
