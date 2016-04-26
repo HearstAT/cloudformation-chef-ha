@@ -89,7 +89,7 @@ if [ ${ROLE} == 'primary' ]; then
     echo "${SSL_KEY}" >> ${S3DIR}/certs/key
 
     ## Mail
-    echo "${MAIL_HOST} ${MAIL_PASSWORD}" >> ${S3DIR}/mail/password
+    echo "${MAIL_HOST} ${MAIL_CREDS}" >> ${S3DIR}/mail/creds
 
     ## New Relic
     echo "${NR_LICENSE}" >> ${S3DIR}/newrelic/license
@@ -170,7 +170,7 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
      "relayport": "${MAIL_PORT}"
     },
     "s3": {
-     "backup_bucket": "${BUCKET}"
+     "dir": "${S3DIR}"
     },
     "backendprimary": {
        "fqdn":  "${PRIMARY_DNS}",
