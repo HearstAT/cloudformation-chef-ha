@@ -245,9 +245,8 @@
               "  exit 1\n",
               "}\n",
               "export -f error_exit\n",
-              "mkdir -p /user-init/ \n",
-              "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
-              "chmod +x /user-init/userdata.sh \n",
+              "curl -Sl ", { "Ref" : "UserDataScript" }," -o /tmp/userdata.sh\n",
+              "chmod +x /tmp/userdata.sh \n",
               "export BUILD_DATA=${1}\n",
               "export WAIT_HANDLE=", { "Ref" : "WaitHandle" },"\n",
               "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
@@ -284,9 +283,10 @@
               "export ANALYTICS_DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
               "export ANALYTICS_IP=", {"Ref" : "AnalyticsIP" } ," \n ",
               "export ROLE=analytics \n",
-              "/user-init/userdata.sh\n",
+              "/tmp/userdata.sh\n",
               "# All is well so signal success and let CF know wait function is complete\n",
-              "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
+              "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "WaitHandle" }, "'\n",
+              "rm -f /tmp/userdata.sh"
             ]
           ]
         }
