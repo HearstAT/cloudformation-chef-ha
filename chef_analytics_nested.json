@@ -19,6 +19,11 @@
       "Type": "String",
       "Default": ""
     },
+    "IAMRole": {
+      "Description" : "Enter IAM Role name",
+      "Type" : "String",
+      "Default": ""
+    },
     "VPC": {
       "Description" : "Choose VPC to use",
       "Type" : "String",
@@ -109,20 +114,35 @@
       "Type" : "String",
       "Default": ""
     },
-    "HACookbookGit": {
-      "Type": "String",
-      "Default": "",
-      "ConstraintDescription": "Git Clone URI for Cookbook"
-    },
-    "CitadelBucket": {
-      "Type": "String",
-      "Default": "",
-      "Description": "Enter S3 bucket name for all Citadel items"
-    },
-    "BackupBucket": {
+    "Bucket": {
       "Type": "String",
       "Default": "",
       "Description": "Enter S3 bucket name for chef backups & primary backened generated items"
+    },
+    "ChefDir": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Path to mount S3 Bucket to (created during CFN run)"
+    },
+    "S3Dir": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Path to mount S3 Bucket to (created during CFN run)"
+    },
+    "Cookbook": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Cookbook Name"
+    },
+    "CookbookGit": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Git Clone URI for Cookbook"
+    },
+    "CookbookGitBranch": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Git Clone Branch"
     },
     "RestoreFile": {
       "Type": "String",
@@ -195,6 +215,7 @@
   "AnalyticsEC2Instance": {
     "Type": "AWS::EC2::Instance",
     "Properties": {
+      "IamInstanceProfile": { "Ref": "IAMRole" },
       "DisableApiTermination": "false",
       "InstanceInitiatedShutdownBehavior": "stop",
       "InstanceType": {"Ref": "InstanceType"},
@@ -214,57 +235,58 @@
       ],
       "UserData": {
         "Fn::Base64" : { "Fn::Join" : ["", [
-          "#!/bin/bash -xev\n",
-          "apt-get update && apt-get -y upgrade \n",
-          "apt-get install -y wget curl python-setuptools python-pip git\n",
-          "# Helper function to set wait timer\n",
-          "function error_exit\n",
-          "{\n",
-          "  /usr/local/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
-          "  exit 1\n",
-          "}\n",
-          "export -f error_exit\n",
-          "mkdir -p /user-init/ \n",
-          "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
-          "chmod +x /user-init/userdata.sh \n",
-          "export BUILD_DATA=${1}\n",
-          "export WAIT_HANDLE=", { "Ref" : "WaitHandle" },"\n",
-          "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
-          "export ACCESS_KEY=", {"Ref" : "AccessKey" } ," \n ",
-          "export SECRET_KEY=", {"Ref" : "SecretKey" } ," \n ",
-          "export ENI=", {"Ref" : "AnalyticsENI" } ," \n ",
-          "export VIP=", {"Ref" : "VIP" } ," \n ",
-          "export DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
-          "export PRIMARY_DNS=", {"Ref" : "PrimaryInternalDNS" } ," \n ",
-          "export PRIMARY_IP=", {"Ref" : "PrimaryIP" } ," \n ",
-          "export FAIL_DNS=", {"Ref" : "FailoverInternalDNS" } ," \n ",
-          "export FAIL_IP=", {"Ref" : "FailoverIP" } ," \n ",
-          "export VIP_DNS=", {"Ref" : "VIPInternalDNS" } ," \n ",
-          "export FE01_DNS=", {"Ref" : "FE01DNS" } ," \n ",
-          "export FE01_IP=", {"Ref" : "FE01IP" } ," \n ",
-          "export FE02_DNS=", {"Ref" : "FE02DNS" } ," \n ",
-          "export FE02_IP=", {"Ref" : "FE02IP" } ," \n ",
-          "export DOMAIN=", {"Ref": "HostedZone"} ," \n ",
-          "export SUBDOMAIN=", {"Ref": "HostedSubdomain"} ," \n ",
-          "export EBS_ID=", {"Ref" : "BackendEBSID" } ," \n ",
-          "export EBS_MOUNT_PATH=", {"Ref" : "EBSMountPath" } ," \n ",
-          "export BACKUP_BUCKET=", {"Ref" : "BackupBucket" } ," \n ",
-          "export BACKUP_ENABLE=", {"Ref" : "BackupEnable" } ," \n ",
-          "export RESTORE_FILE=", {"Ref" : "RestoreFile" } ," \n ",
-          "export CITADEL_BUCKET=", {"Ref" : "CitadelBucket" } ," \n ",
-          "export COOKBOOK=", {"Ref" : "HACookbookGit" } ," \n ",
-          "export SIGNUP_DISABLE=", {"Ref" : "SignupDisable" } ," \n ",
-          "export SUPPORT_EMAIL=", {"Ref" : "SupportEmail" } ," \n ",
-          "export MAIL_HOST=", {"Ref" : "MailHost" } ," \n ",
-          "export MAIL_PORT=", {"Ref" : "MailPort" } ," \n ",
-          "export LICENSE_COUNT=", {"Ref" : "LicenseCount" } ," \n ",
-          "export ANALYTICS_SUBDOMAIN=", {"Ref": "AnalyticsSubdomain"} ," \n ",
-          "export ANALYTICS_DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
-          "export ANALYTICS_IP=", {"Ref" : "AnalyticsIP" } ," \n ",
-          "export ROLE=analytics \n",
-          "/user-init/userdata.sh\n",
-          "# All is well so signal success and let CF know wait function is complete\n",
-          "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
+              "#!/bin/bash -xev\n",
+              "apt-get update && apt-get -y upgrade \n",
+              "apt-get install -y wget curl python-setuptools python-pip git\n",
+              "# Helper function to set wait timer\n",
+              "function error_exit\n",
+              "{\n",
+              "  /usr/local/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
+              "  exit 1\n",
+              "}\n",
+              "export -f error_exit\n",
+              "mkdir -p /user-init/ \n",
+              "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
+              "chmod +x /user-init/userdata.sh \n",
+              "export BUILD_DATA=${1}\n",
+              "export WAIT_HANDLE=", { "Ref" : "WaitHandle" },"\n",
+              "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
+              "export ENI=", {"Ref" : "AnalyticsENI" } ," \n ",
+              "export VIP=", {"Ref" : "VIP" } ," \n ",
+              "export DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
+              "export PRIMARY_DNS=", {"Ref" : "PrimaryInternalDNS" } ," \n ",
+              "export PRIMARY_IP=", {"Ref" : "PrimaryIP" } ," \n ",
+              "export FAIL_DNS=", {"Ref" : "FailoverInternalDNS" } ," \n ",
+              "export FAIL_IP=", {"Ref" : "FailoverIP" } ," \n ",
+              "export VIP_DNS=", {"Ref" : "VIPInternalDNS" } ," \n ",
+              "export FE01_DNS=", {"Ref" : "FE01DNS" } ," \n ",
+              "export FE01_IP=", {"Ref" : "FE01IP" } ," \n ",
+              "export FE02_DNS=", {"Ref" : "FE02DNS" } ," \n ",
+              "export FE02_IP=", {"Ref" : "FE02IP" } ," \n ",
+              "export DOMAIN=", {"Ref": "HostedZone"} ," \n ",
+              "export SUBDOMAIN=", {"Ref": "HostedSubdomain"} ," \n ",
+              "export EBS_ID=", {"Ref" : "BackendEBSID" } ," \n ",
+              "export EBS_MOUNT_PATH=", {"Ref" : "EBSMountPath" } ," \n ",
+              "export BUCKET=", {"Ref" : "Bucket" } ," \n ",
+              "export BACKUP_ENABLE=", {"Ref" : "BackupEnable" } ," \n ",
+              "export RESTORE_FILE=", {"Ref" : "RestoreFile" } ," \n ",
+              "export CHEFDIR=", {"Ref" : "ChefDir" } ," \n ",
+              "export COOKBOOK=", {"Ref" : "Cookbook" } ," \n ",
+              "export COOKBOOK_GIT=", {"Ref" : "CookbookGit" } ," \n ",
+              "export COOKBOOK_BRANCH=", {"Ref" : "CookbookGitBranch" } ," \n ",
+              "export SIGNUP_DISABLE=", {"Ref" : "SignupDisable" } ," \n ",
+              "export S3DIR=", {"Ref" : "S3Dir" } ," \n ",
+              "export SUPPORT_EMAIL=", {"Ref" : "SupportEmail" } ," \n ",
+              "export MAIL_HOST=", {"Ref" : "MailHost" } ," \n ",
+              "export MAIL_PORT=", {"Ref" : "MailPort" } ," \n ",
+              "export LICENSE_COUNT=", {"Ref" : "LicenseCount" } ," \n ",
+              "export ANALYTICS_SUBDOMAIN=", {"Ref": "AnalyticsSubdomain"} ," \n ",
+              "export ANALYTICS_DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
+              "export ANALYTICS_IP=", {"Ref" : "AnalyticsIP" } ," \n ",
+              "export ROLE=analytics \n",
+              "/user-init/userdata.sh\n",
+              "# All is well so signal success and let CF know wait function is complete\n",
+              "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
             ]
           ]
         }
