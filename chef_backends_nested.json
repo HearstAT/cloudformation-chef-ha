@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Cloudformation Chef Backend Servers v1.1",
+  "Description": "Cloudformation Chef Backend Servers v1.2",
   "Parameters": {
     "InstanceType": {
       "Type": "String",
@@ -26,6 +26,11 @@
     },
     "Subnet": {
       "Description" : "Choose Subnet",
+      "Type" : "String",
+      "Default": ""
+    },
+    "IAMRole": {
+      "Description" : "Enter IAM Role name",
       "Type" : "String",
       "Default": ""
     },
@@ -114,17 +119,12 @@
       "Type" : "String",
       "Default": ""
     },
-    "HACookbookGit": {
+    "ChefDir": {
       "Type": "String",
       "Default": "",
-      "ConstraintDescription": "Git Clone URI for Cookbook"
+      "Description": "Enter dir location"
     },
-    "CitadelBucket": {
-      "Type": "String",
-      "Default": "",
-      "Description": "Enter S3 bucket name for all Citadel items"
-    },
-    "BackupBucket": {
+    "Bucket": {
       "Type": "String",
       "Default": "",
       "Description": "Enter S3 bucket name for chef backups & primary backened generated items"
@@ -158,6 +158,68 @@
       "Type": "String",
       "Default": "",
       "Description": "Enter how many licenses you have purchased"
+    },
+    "SSLCRT": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter SSL certifcate"
+    },
+    "SSLKEY": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter SSL key"
+    },
+    "MailCreds": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter Mail Credentials (e.g.; $username:$password)"
+    },
+    "NewRelicLicense": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter New Relic License Key"
+    },
+    "SumologicAccessID": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter Sumologic Access ID"
+    },
+    "SumologicAccessKey": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter Sumologic Access Key"
+    },
+    "SumologicPassword": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter Sumologic Password"
+    },
+    "S3Dir": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Path to mount S3 Bucket to (created during CFN run)"
+    },
+    "Cookbook": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Cookbook Name"
+    },
+    "CookbookGit": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Git Clone URI for Cookbook"
+    },
+    "CookbookGitBranch": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Git Clone Branch"
     },
     "EBSMountPath": {
       "Type": "String",
@@ -217,6 +279,7 @@
   "BackendPrimaryEC2Instance": {
     "Type": "AWS::EC2::Instance",
       "Properties": {
+        "IamInstanceProfile": { "Ref": "IAMRole" },
         "DisableApiTermination": "false",
         "InstanceInitiatedShutdownBehavior": "stop",
         "InstanceType": {"Ref": "InstanceType"},
@@ -249,9 +312,8 @@
                 "  exit 1\n",
                 "}\n",
                 "export -f error_exit\n",
-                "mkdir -p /user-init/ \n",
-                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
-                "chmod +x /user-init/userdata.sh \n",
+                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /tmp/userdata.sh\n",
+                "chmod +x /tmp/userdata.sh \n",
                 "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
                 "export ACCESS_KEY=", {"Ref" : "AccessKey" } ," \n ",
                 "export SECRET_KEY=", {"Ref" : "SecretKey" } ," \n ",
@@ -271,13 +333,23 @@
                 "export SUBDOMAIN=", {"Ref": "HostedSubdomain"} ," \n ",
                 "export EBS_ID=", {"Ref" : "BackendEBSID" } ," \n ",
                 "export EBS_MOUNT_PATH=", {"Ref" : "EBSMountPath" } ," \n ",
-                "export BACKUP_BUCKET=", {"Ref" : "BackupBucket" } ," \n ",
+                "export BUCKET=", {"Ref" : "Bucket" } ," \n ",
                 "export BACKUP_ENABLE=", {"Ref" : "BackupEnable" } ," \n ",
                 "export RESTORE_FILE=", {"Ref" : "RestoreFile" } ," \n ",
-                "export CITADEL_BUCKET=", {"Ref" : "CitadelBucket" } ," \n ",
-                "export COOKBOOK=", {"Ref" : "HACookbookGit" } ," \n ",
+                "export CHEFDIR=", {"Ref" : "ChefDir" } ," \n ",
+                "export COOKBOOK=", {"Ref" : "Cookbook" } ," \n ",
+                "export COOKBOOK_GIT=", {"Ref" : "CookbookGit" } ," \n ",
+                "export COOKBOOK_BRANCH=", {"Ref" : "CookbookGitBranch" } ," \n ",
                 "export SIGNUP_DISABLE=", {"Ref" : "SignupDisable" } ," \n ",
+                "export S3DIR=", {"Ref" : "S3Dir" } ," \n ",
                 "export SUPPORT_EMAIL=", {"Ref" : "SupportEmail" } ," \n ",
+                "export SSL_CERT=", {"Ref" : "SSLCRT" } ," \n ",
+                "export SSL_KEY=", {"Ref" : "SSLKEY" } ," \n ",
+                "export NR_LICENSE=", {"Ref" : "NewRelicLicense" } ," \n ",
+                "export SUMO_ACCESS_ID=", {"Ref" : "SumologicAccessID" } ," \n ",
+                "export SUMO_ACCESS_KEY=", {"Ref" : "SumologicAccessKey" } ," \n ",
+                "export SUMO_PASSWORD=", {"Ref" : "SumologicPassword" } ," \n ",
+                "export MAIL_CREDS=", {"Ref" : "MailCreds" } ," \n ",
                 "export MAIL_HOST=", {"Ref" : "MailHost" } ," \n ",
                 "export MAIL_PORT=", {"Ref" : "MailPort" } ," \n ",
                 "export LICENSE_COUNT=", {"Ref" : "LicenseCount" } ," \n ",
@@ -285,9 +357,10 @@
                 "export ANALYTICS_DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
                 "export ANALYTICS_IP=", {"Ref" : "AnalyticsIP" } ," \n ",
                 "export ROLE=primary \n ",
-                "/user-init/userdata.sh\n",
+                "/tmp/userdata.sh\n",
                 "# All is well so signal success and let CF know wait function is complete\n",
-                "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "PrimaryWaitHandle" }, "'\n"
+                "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "PrimaryWaitHandle" }, "'\n",
+                "rm -f /tmp/userdata.sh"
               ]
             ]
           }
@@ -298,6 +371,7 @@
       "Type": "AWS::EC2::Instance",
       "DependsOn": ["BackendPrimaryEC2Instance", "PrimaryWaitCondition"],
       "Properties": {
+        "IamInstanceProfile": { "Ref": "IAMRole" },
         "DisableApiTermination": "false",
         "InstanceInitiatedShutdownBehavior": "stop",
         "InstanceType": {"Ref": "InstanceType"},
@@ -327,12 +401,9 @@
                 "  exit 1\n",
                 "}\n",
                 "export -f error_exit\n",
-                "mkdir -p /user-init/ \n",
-                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /user-init/userdata.sh\n",
-                "chmod +x /user-init/userdata.sh \n",
+                "curl -Sl ", { "Ref" : "UserDataScript" }," -o /tmp/userdata.sh\n",
+                "chmod +x /tmp/userdata.sh \n",
                 "export REGION=", {"Ref" : "AWS::Region" } ," \n ",
-                "export ACCESS_KEY=", {"Ref" : "AccessKey" } ," \n ",
-                "export SECRET_KEY=", {"Ref" : "SecretKey" } ," \n ",
                 "export ENI=", {"Ref" : "FailoverENI" } ," \n ",
                 "export VIP=", {"Ref" : "VIP" } ," \n ",
                 "export DNS=", {"Ref" : "FailoverInternalDNS" } ," \n ",
@@ -349,11 +420,14 @@
                 "export SUBDOMAIN=", {"Ref": "HostedSubdomain"} ," \n ",
                 "export EBS_ID=", {"Ref" : "BackendEBSID" } ," \n ",
                 "export EBS_MOUNT_PATH=", {"Ref" : "EBSMountPath" } ," \n ",
-                "export BACKUP_BUCKET=", {"Ref" : "BackupBucket" } ," \n ",
                 "export BACKUP_ENABLE=", {"Ref" : "BackupEnable" } ," \n ",
                 "export RESTORE_FILE=", {"Ref" : "RestoreFile" } ," \n ",
-                "export CITADEL_BUCKET=", {"Ref" : "CitadelBucket" } ," \n ",
-                "export COOKBOOK=", {"Ref" : "HACookbookGit" } ," \n ",
+                "export CHEFDIR=", {"Ref" : "ChefDir" } ," \n ",
+                "export BUCKET=", {"Ref" : "Bucket" } ," \n ",
+                "export S3DIR=", {"Ref" : "S3Dir" } ," \n ",
+                "export COOKBOOK=", {"Ref" : "Cookbook" } ," \n ",
+                "export COOKBOOK_GIT=", {"Ref" : "CookbookGit" } ," \n ",
+                "export COOKBOOK_GIT_BRANCH=", {"Ref" : "CookbookGitBranch" } ," \n ",
                 "export SIGNUP_DISABLE=", {"Ref" : "SignupDisable" } ," \n ",
                 "export SUPPORT_EMAIL=", {"Ref" : "SupportEmail" } ," \n ",
                 "export MAIL_HOST=", {"Ref" : "MailHost" } ," \n ",
@@ -363,9 +437,10 @@
                 "export ANALYTICS_DNS=", {"Ref" : "AnalyticsDNS" } ," \n ",
                 "export ANALYTICS_IP=", {"Ref" : "AnalyticsIP" } ," \n ",
                 "export ROLE=failover \n ",
-                "/user-init/userdata.sh\n",
+                "/tmp/userdata.sh\n",
                 "# All is well so signal success and let CF know wait function is complete\n",
-                "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "FailoverWaitHandle" }, "'\n"
+                "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "FailoverWaitHandle" }, "'\n",
+                "rm -f /tmp/userdata.sh"
               ]
             ]
           }
@@ -393,12 +468,6 @@
           "Handle" : { "Ref" : "FailoverWaitHandle" },
           "Timeout" : "1600"
         }
-    },
-    "Outputs": {
-      "PrimaryPublicIP" : {
-        "Description" : "Command to run if needing to restore from a backup",
-        "Value" : { "Fn::GetAtt" : [ "BackendPrimaryEC2Instance", "PublicIp" ] }
-      }
     }
   }
 }

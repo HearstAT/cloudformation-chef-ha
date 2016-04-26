@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
-  "Description": "Cloudformation Chef Stack Prime (Manages all Chef HA CF Templates) v1.1",
+  "Description": "Cloudformation Chef Stack Prime (Manages all Chef HA CF Templates) v1.2222222222222222222222",
   "Parameters": {
     "HostedZone": {
         "Type": "String",
@@ -29,11 +29,6 @@
         "Default": "10.0.0.10",
         "Description": "Enter Backend VIP"
     },
-    "CitadelBucket": {
-        "Type": "String",
-        "Default": "chef-ha-citadel",
-        "Description": "Enter S3 bucket name for all Citadel items"
-    },
     "RestoreFile": {
         "Type": "String",
         "Default": "backup_$date",
@@ -60,34 +55,96 @@
         "Default": "587",
         "Description": "Enter Port for Mail Host (Optional)"
     },
+    "ChefDir": {
+        "Type": "String",
+        "Default": "/root/chef",
+        "Description": "Enter location for client.rb, role.json, & berks functions/creation"
+    },
     "LicenseCount": {
         "Type": "String",
         "Default": "25",
         "Description": "Enter how many licenses you have purchased"
+    },
+    "SSLCRT": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter SSL certifcate"
+    },
+    "SSLKEY": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter SSL key"
+    },
+    "MailCreds": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter Mail Credentials (e.g.; $username:$password)"
+    },
+    "NewRelicLicense": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter New Relic License Key"
+    },
+    "SumologicAccessID": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter Sumologic Access ID"
+    },
+    "SumologicAccessKey": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter Sumologic Access Key"
+    },
+    "SumologicPassword": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Enter Sumologic Password"
     },
     "EBSMountPath": {
         "Type": "String",
         "Default": "/dev/xvdf",
         "Description": "Enter EC2 Mount Point for Backend EBS Device"
     },
-    "HACookbookGit": {
+    "S3Dir": {
+        "Type": "String",
+        "Default": "/opt/chef-s3",
+        "Description": "Path to mount S3 Bucket to (created during CFN run)"
+    },
+    "Cookbook": {
+        "Type": "String",
+        "Default": "cf_ha_chef",
+        "Description": "Cookbook Name"
+    },
+    "CookbookGit": {
         "Type": "String",
         "Default": "https://github.com/HearstAT/cf_ha_chef",
         "Description": "Git Clone URI for Cookbook"
     },
+    "CookbookGitBranch": {
+        "Type": "String",
+        "Default": "master",
+        "Description": "Git Clone Branch"
+    },
     "BackendTemplateURL": {
         "Type": "String",
-        "Default": "https://github.com/HearstAT/cloudformation-chef-ha/blob/master/chef_backends_nested.json",
+        "Default": "https://s3.location.com/chef_backends_nested.json",
         "Description": "S3 Bucket location for backend template"
     },
     "FrontendTemplateURL": {
         "Type": "String",
-        "Default": "https://github.com/HearstAT/cloudformation-chef-ha/blob/master/chef_frontends_nested.json",
+        "Default": "https://s3.location.com/chef_frontends_nested.json",
         "Description": "S3 Bucket location for backend template"
     },
     "AnalyticsTemplateURL": {
         "Type": "String",
-        "Default": "https://github.com/HearstAT/cloudformation-chef-ha/blob/master/chef_analytics_nested.json",
+        "Default": "https://s3.location.com/chef_analytics_nested.json",
         "Description": "S3 Bucket location for backend template"
     },
     "KeyName": {
@@ -268,19 +325,23 @@
             },
             {
                 "Label" : {"default": "Chef Configuration"},
-                "Parameters" : ["ChefSubdomain", "AnalyticsSubdomain", "SignupDisable", "SupportEmail", "LicenseCount", "EBSMountPath", "MailHost", "MailPort", "BackupEnable", "RestoreFile"]
+                "Parameters" : ["ChefSubdomain", "AnalyticsSubdomain", "SSLCRT", "SSLKEY", "SignupDisable", "SupportEmail", "LicenseCount", "ChefDir", "S3Dir", "EBSMountPath", "BackupEnable", "RestoreFile"]
             },
             {
-                "Label" : {"default": "Secrets Configuration"},
-                "Parameters" : ["sslCRT", "sslKEY", "saslPassword", "NewRelicLicense", "SumologicAccessID", " SumologicAccessKey", "SumologicPassword"]
+                "Label" : {"default": "Mail Configuration (Optional)"},
+                "Parameters" : ["MailCreds", "MailHost", "MailPort"]
+            },
+            {
+                "Label" : {"default": "New Relic Configuration (Optional)"},
+                "Parameters" : ["NewRelicLicense"]
+            },
+            {
+                "Label" : {"default": "Sumologic Configuration (Optional)"},
+                "Parameters" : ["SumologicAccessID", " SumologicAccessKey", "SumologicPassword"]
             },
             {
                 "Label" : {"default": "External Build Items"},
-                "Parameters" : ["HACookbookGit", "CookbookGitBranch", "UserDataScript"]
-            },
-            {
-                "Label" : {"default": "Letsencrypt Configuration (SSL)"},
-                "Parameters" : ["Environment", "ContactEmail"]
+                "Parameters" : ["Cookbook", "CookbookGit", "CookbookGitBranch", "UserDataScript"]
             }
         ]
     }
@@ -398,38 +459,90 @@
         ]
       }
     },
+    "ChefBucket" : {
+      "Type" : "AWS::S3::Bucket",
+      "DeletionPolicy" : "Retain",
+      "Properties" : {
+        "AccessControl" : "Private"
+      }
+    },
+    "ChefRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+           "AssumeRolePolicyDocument": {
+              "Version" : "2012-10-17",
+              "Statement": [ {
+                 "Effect": "Allow",
+                 "Principal": {
+                    "Service": [ "ec2.amazonaws.com" ]
+                 },
+                 "Action": [ "sts:AssumeRole" ]
+              } ]
+           },
+           "Path": "/"
+        }
+    },
+    "RolePolicies": {
+        "Type": "AWS::IAM::Policy",
+        "Properties": {
+          "PolicyName": "chef-s3",
+          "PolicyDocument": {
+            "Version" : "2012-10-17",
+            "Statement":[
+            {
+                "Effect":"Allow",
+                "Action": [ "s3:*" ],
+                "Resource": [ { "Fn::Join" : [ "", [ "arn:aws:s3:::", { "Ref" : "ChefBucket" }, "/" ] ] },
+                              { "Fn::Join" : [ "", [ "arn:aws:s3:::", { "Ref" : "ChefBucket" }, "/*" ] ] } ]
+            },
+            {
+                "Effect":"Allow",
+                "Action": [ "s3:List*" ],
+                "Resource": "arn:aws:s3:::*"
+            } ]
+          },
+          "Roles": [ { "Ref": "ChefRole" } ]
+      }
+    },
+     "ChefInstanceProfile": {
+        "Type": "AWS::IAM::InstanceProfile",
+        "Properties": {
+           "Path": "/",
+           "Roles": [ {
+              "Ref": "ChefRole"
+           } ]
+        }
+    },
     "ChefServerUser" : {
       "Type" : "AWS::IAM::User",
       "Properties" : {
         "Path": "/",
         "Policies": [ {
           "PolicyName": "ChefHAStack",
-          "PolicyDocument": { "Statement":[ {
-            "Effect":"Allow",
-            "Action": [
-              "cloudformation:DescribeStackResource",
-              "s3:GetObject",
-              "s3:Put",
-              "s3:PutObject",
-              "s3:PutObjectAcl",
-              "s3:List*",
-              "ec2:AttachVolume",
-              "ec2:CreateVolume",
-              "ec2:CreateTags",
-              "ec2:DescribeVolumeAttribute",
-              "ec2:DescribeVolumeStatus",
-              "ec2:DescribeVolumes",
-              "ec2:DescribeInstances",
-              "ec2:DetachVolume",
-              "ec2:EnableVolumeIO",
-              "ec2:ImportVolume",
-              "ec2:ModifyVolumeAttribute",
-              "ec2:DescribeNetworkInterfaces",
-              "ec2:AssignPrivateIpAddresses",
-              "ec2:UnassignPrivateIpAddresses"
-            ],
-            "Resource":"*"
-          } ] }
+          "PolicyDocument": { "Statement":
+            [
+                {
+                    "Effect":"Allow",
+                    "Action": [
+                        "cloudformation:DescribeStackResource",
+                        "ec2:AttachVolume",
+                        "ec2:CreateVolume",
+                        "ec2:CreateTags",
+                        "ec2:DescribeVolumeAttribute",
+                        "ec2:DescribeVolumeStatus",
+                        "ec2:DescribeVolumes",
+                        "ec2:DescribeInstances",
+                        "ec2:DetachVolume",
+                        "ec2:EnableVolumeIO",
+                        "ec2:ImportVolume",
+                        "ec2:ModifyVolumeAttribute",
+                        "ec2:DescribeNetworkInterfaces",
+                        "ec2:AssignPrivateIpAddresses",
+                        "ec2:UnassignPrivateIpAddresses"
+                    ],
+                    "Resource":"*"
+                }
+            ] }
         } ]
       }
     },
@@ -437,13 +550,6 @@
       "Type" : "AWS::IAM::AccessKey",
       "Properties" : {
         "UserName" : { "Ref": "ChefServerUser" }
-      }
-    },
-    "ChefBucket" : {
-      "Type" : "AWS::S3::Bucket",
-      "DeletionPolicy" : "Retain",
-      "Properties" : {
-        "AccessControl" : "Private"
       }
     },
     "BackendPrimaryENI" : {
@@ -604,6 +710,7 @@
           "InstanceType": { "Ref": "BackendInstanceType" },
           "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
                      { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "BackendInstanceType" }, "Arch" ] } ] },
+          "IAMRole": { "Ref": "ChefInstanceProfile" },
           "KeyName" : { "Ref": "KeyName" },
           "SSHSecurityGroup" : { "Ref": "SSHSecurityGroup" },
           "VPC": { "Ref": "VPC" },
@@ -626,13 +733,20 @@
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "EBSMountPath": { "Ref" : "EBSMountPath" },
-          "BackupBucket": { "Ref" : "ChefBucket" },
           "BackupEnable": { "Ref" : "BackupEnable" },
           "RestoreFile": { "Ref" : "RestoreFile" },
-          "CitadelBucket": { "Ref" : "CitadelBucket" },
-          "HACookbookGit": { "Ref": "HACookbookGit" },
+          "Bucket": { "Ref" : "ChefBucket" },
+          "Cookbook": { "Ref": "Cookbook" },
+          "CookbookGit": { "Ref": "CookbookGit" },
+          "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
+          "S3Dir": { "Ref": "S3Dir" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
+          "SumologicAccessID": { "Ref": "SumologicAccessID" },
+          "SumologicAccessKey": { "Ref": "SumologicAccessKey" },
+          "SumologicPassword": { "Ref": "SumologicPassword" },
+          "NewRelicLicense": { "Ref": "NewRelicLicense" },
+          "MailCreds": { "Ref": "MailCreds" },
           "MailHost": { "Ref": "MailHost" },
           "MailPort": { "Ref": "MailPort" },
           "LicenseCount": { "Ref": "LicenseCount" },
@@ -735,6 +849,7 @@
           "InstanceType": { "Ref": "FrontendInstanceType" },
           "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
                      { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "FrontendInstanceType" }, "Arch" ] } ] },
+          "IAMRole": { "Ref": "ChefInstanceProfile" },
           "KeyName" : { "Ref": "KeyName" },
           "SSHSecurityGroup" : { "Ref": "SSHSecurityGroup" },
           "LoadBalancerSecurityGroup" : { "Ref": "LoadBalancerSecurityGroup" },
@@ -744,8 +859,6 @@
           "SubnetB": { "Ref": "PublicSubnetB" },
           "FE01ENI": { "Ref": "FE01ENI" },
           "FE02ENI": { "Ref": "FE02ENI" },
-          "AccessKey": { "Ref": "HostKeys" },
-          "SecretKey": { "Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ]},
           "VIP": { "Ref": "BackendVIP" },
           "VIPInternalDNS": { "Fn::Join" : [ "", [ "chef-vip", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
           "PrimaryIP": { "Fn::GetAtt" : [ "BackendPrimaryENI", "PrimaryPrivateIpAddress" ] },
@@ -760,11 +873,13 @@
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "EBSMountPath": { "Ref" : "EBSMountPath" },
-          "BackupBucket": { "Ref" : "ChefBucket" },
           "BackupEnable": { "Ref" : "BackupEnable" },
           "RestoreFile": { "Ref" : "RestoreFile" },
-          "CitadelBucket": { "Ref" : "CitadelBucket" },
-          "HACookbookGit": { "Ref": "HACookbookGit" },
+          "Bucket": { "Ref" : "ChefBucket" },
+          "Cookbook": { "Ref": "Cookbook" },
+          "CookbookGit": { "Ref": "CookbookGit" },
+          "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
+          "S3Dir": { "Ref": "S3Dir" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
           "MailHost": { "Ref": "MailHost" },
@@ -828,12 +943,11 @@
           "InstanceType": { "Ref": "AnalyticsInstanceType" },
           "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
                      { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "AnalyticsInstanceType" }, "Arch" ] } ] },
+          "IAMRole": { "Ref": "ChefInstanceProfile" },
           "KeyName" : { "Ref": "KeyName" },
           "SSHSecurityGroup" : { "Ref": "SSHSecurityGroup" },
           "VPC": { "Ref": "VPC" },
           "Subnet": { "Ref": "PublicSubnetA" },
-          "AccessKey": { "Ref": "HostKeys" },
-          "SecretKey": { "Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ]},
           "AnalyticsENI": { "Ref": "AnalyticsENI" },
           "VIP": { "Ref": "BackendVIP" },
           "VIPInternalDNS": { "Fn::Join" : [ "", ["chef-vip", ".", "int", ".", { "Ref" : "HostedZone" } ] ] },
@@ -849,11 +963,13 @@
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "EBSMountPath": { "Ref" : "EBSMountPath" },
-          "BackupBucket": { "Ref" : "ChefBucket" },
           "BackupEnable": { "Ref" : "BackupEnable" },
           "RestoreFile": { "Ref" : "RestoreFile" },
-          "CitadelBucket": { "Ref" : "CitadelBucket" },
-          "HACookbookGit": { "Ref": "HACookbookGit" },
+          "Bucket": { "Ref" : "ChefBucket" },
+          "Cookbook": { "Ref": "Cookbook" },
+          "CookbookGit": { "Ref": "CookbookGit" },
+          "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
+          "S3Dir": { "Ref": "S3Dir" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
           "MailHost": { "Ref": "MailHost" },
@@ -872,9 +988,9 @@
   "Outputs": {
     "BackupRestoreCommand": {
       "Description" : "Command to run if needing to restore from a backup",
-      "Value" : { "Fn::Join" : [ "", ["ssh", " -tt", " ubuntu@", { "Fn::GetAtt" : [ "BackendStack", "Outputs.PrimaryPublicIP" ] } ," 'chef-client -c '/root/.chef/client.rb' -z --chef-zero-port 8899 -j /root/.chef/primary_post_restore.json'" ] ] }
+      "Value" : { "Fn::Join" : [ "", ["ssh", " -tt", " ubuntu@", { "Fn::GetAtt" : [ "BackendStack", "Outputs.PrimaryPublicIP" ] } ," 'chef-client -c '/root/chef/client.rb' -j /root/.chef/primary_post_restore.json'" ] ] }
     },
-    "BackupBucket" : {
+    "ChefBucket" : {
       "Description" : "Bucket that all chef backups will be stored",
       "Value" : { "Ref": "ChefBucket" }
     }
