@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
-  "Description": "Cloudformation Chef Stack Prime (Manages all Chef HA CF Templates) v1.2222222222222222222222",
+  "Description": "Cloudformation Chef Stack Prime (Manages all Chef HA CF Templates) v1.2",
   "Parameters": {
     "HostedZone": {
         "Type": "String",
