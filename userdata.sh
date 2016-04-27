@@ -85,7 +85,7 @@ if [ ${ROLE} == 'primary' ]; then
     set +xv
     echo "Setting up Citadel items, turning of verbose"
     ## Certs and Keys
-    echo "${SSL_CERT}" >> ${S3DIR}/certs/crt
+    curl -s ${SSL_CERT} -o ${S3DIR}/certs/crt
     echo "${SSL_KEY}" >> ${S3DIR}/certs/key
 
     ## Mail

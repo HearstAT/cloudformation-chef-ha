@@ -67,9 +67,8 @@
     },
     "SSLCRT": {
         "Type": "String",
-        "NoEcho": "true",
         "Default": "",
-        "Description": "Enter SSL certifcate"
+        "Description": "Enter SSL certifcate download url"
     },
     "SSLKEY": {
         "Type": "String",
@@ -317,7 +316,7 @@
         "ParameterGroups" : [
             {
                 "Label" : {"default": "Instance & Network Configuration"},
-                "Parameters" : ["BackendInstanceType", "FrontendInstanceType", "AnalyticsInstanceType", "KeyName", "VPC", "SSHSecurityGroup", "AvailabilityZoneA", "AvailabilityZoneB", "HostedZone", "BackendVIP"]
+                "Parameters" : ["BackendInstanceType", "FrontendInstanceType", "AnalyticsInstanceType", "KeyName", "SSLCertificateARN", "VPC", "SSHSecurityGroup", "AvailabilityZoneA", "AvailabilityZoneB", "HostedZone", "BackendVIP"]
             },
             {
                 "Label" : {"default": "Stack Configuration"},
@@ -337,7 +336,7 @@
             },
             {
                 "Label" : {"default": "Sumologic Configuration (Optional)"},
-                "Parameters" : ["SumologicAccessID", " SumologicAccessKey", "SumologicPassword"]
+                "Parameters" : ["SumologicAccessID", "SumologicAccessKey", "SumologicPassword"]
             },
             {
                 "Label" : {"default": "External Build Items"},
