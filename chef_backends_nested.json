@@ -316,6 +316,7 @@
                 "chmod +x /tmp/userdata.sh \n",
                 "export REGION='", {"Ref" : "AWS::Region" } ,"' \n ",
                 "set +xv \n",
+                "export IAM_ROLE='", {"Ref" : "IAMRole" } ,"' \n ",
                 "export ACCESS_KEY='", {"Ref" : "AccessKey" } ,"' \n ",
                 "export SECRET_KEY='", {"Ref" : "SecretKey" } ,"' \n ",
                 "set -xv \n",
