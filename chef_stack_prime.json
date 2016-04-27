@@ -741,6 +741,8 @@
           "S3Dir": { "Ref": "S3Dir" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
+          "SSLCRT": { "Ref": "SSLCRT" },
+          "SSLKEY": { "Ref": "SSLKEY" },
           "SumologicAccessID": { "Ref": "SumologicAccessID" },
           "SumologicAccessKey": { "Ref": "SumologicAccessKey" },
           "SumologicPassword": { "Ref": "SumologicPassword" },
