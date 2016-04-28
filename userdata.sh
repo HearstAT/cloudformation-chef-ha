@@ -82,10 +82,8 @@ s3fs -o allow_other -o umask=000 -o use_cache=/tmp -o iam_role=${IAM_ROLE} -o en
 echo -e "${BUCKET} ${S3DIR} fuse.s3fs rw,_netdev,allow_other,umask=0022,use_cache=/tmp,iam_role=${IAM_ROLE},endpoint=${REGION},retries=5,multireq_max=5 0 0" >> /etc/fstab || error_exit 'Failed to add mount info to fstab'
 
 if [ ${ROLE} == 'primary' ]; then
-    set +xv
-    echo "Setting up Citadel items, turning of verbose"
     ## Certs and Keys
-    curl -s ${SSL_CERT} -o ${S3DIR}/certs/crt
+    curl -Sl ${SSL_CERT} -o ${S3DIR}/certs/crt
     echo "${SSL_KEY}" >> ${S3DIR}/certs/key
 
     ## Mail
@@ -98,8 +96,6 @@ if [ ${ROLE} == 'primary' ]; then
     echo "${SUMO_PASSWORD}" >> ${S3DIR}/sumologic/password
     echo "${SUMO_ACCESS_ID}" >> ${S3DIR}/sumologic/access_id
     echo "${SUMO_ACCESS_KEY}" >> ${S3DIR}/sumologic/access_key
-    echo "Citadel items complete, turning verbose back on"
-    set -xv
 fi
 
 
