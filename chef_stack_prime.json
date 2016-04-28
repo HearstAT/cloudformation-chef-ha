@@ -739,6 +739,7 @@
           "CookbookGit": { "Ref": "CookbookGit" },
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
           "S3Dir": { "Ref": "S3Dir" },
+          "ChefDir": { "Ref": "ChefDir" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
           "SSLCRT": { "Ref": "SSLCRT" },

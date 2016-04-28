@@ -281,7 +281,7 @@
               "export ANALYTICS_DNS='", {"Ref" : "AnalyticsDNS" } ,"' \n ",
               "export ANALYTICS_IP='", {"Ref" : "AnalyticsIP" } ,"' \n ",
               "export ROLE=analytics \n",
-              "/tmp/userdata.sh\n",
+              "/tmp/userdata.sh || error_exit 'userdata script failed to run'\n",
               "# All is well so signal success and let CF know wait function is complete\n",
               "/usr/local/bin/cfn-signal -e 0 -r \"Server setup complete\" '", { "Ref" : "WaitHandle" }, "'\n",
               "rm -f /tmp/userdata.sh"
