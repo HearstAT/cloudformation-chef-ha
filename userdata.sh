@@ -131,6 +131,9 @@ if [ ${ROLE} == 'primary' ]; then
     aws ec2 assign-private-ip-addresses --network-interface-id  ${ENI}  --allow-reassignment --private-ip-addresses  ${VIP}  || error_exit 'Failed to set VIP'
 fi
 
+# Create Chef Directory
+mkdir -p ${CHEFDIR}
+
 # Set hostname
 hostname  ${DNS}  || error_exit 'Failed to set hostname'
 echo  ${DNS}  > /etc/hostname || error_exit 'Failed to set hostname file'
