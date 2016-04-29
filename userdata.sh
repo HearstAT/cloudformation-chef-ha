@@ -131,6 +131,10 @@ if [ ${ROLE} == 'primary' ]; then
     aws ec2 assign-private-ip-addresses --network-interface-id  ${ENI}  --allow-reassignment --private-ip-addresses  ${VIP}  || error_exit 'Failed to set VIP'
 fi
 
+mkdir -p /etc/chef/ohai/hints || error_exit 'Failed to create ohai folder'
+touch /etc/chef/ohai/hints/ec2.json || error_exit 'Failed to create ec2 hint file'
+touch /etc/chef/ohai/hints/iam.json || error_exit 'Failed to create iam hint file'
+
 # Create Chef Directory
 mkdir -p ${CHEFDIR}
 
