@@ -14,7 +14,7 @@
       "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
       "Type" : "String"
     },
-    "IAMRole": {
+    "IAMProfile": {
       "Description" : "Enter IAM Role name",
       "Type" : "String",
       "Default": ""
@@ -305,7 +305,7 @@
   "FE01EC2Instance": {
     "Type": "AWS::EC2::Instance",
       "Properties": {
-        "IamInstanceProfile": { "Ref": "IAMRole" },
+        "IamInstanceProfile": { "Ref": "IAMProfile" },
         "DisableApiTermination": "false",
         "InstanceInitiatedShutdownBehavior": "stop",
         "InstanceType": {"Ref": "InstanceType"},
@@ -385,7 +385,7 @@
     "FE02EC2Instance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "IamInstanceProfile": { "Ref": "IAMRole" },
+        "IamInstanceProfile": { "Ref": "IAMProfile" },
         "DisableApiTermination": "false",
         "InstanceInitiatedShutdownBehavior": "stop",
         "InstanceType": {"Ref": "InstanceType"},

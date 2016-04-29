@@ -19,7 +19,7 @@
       "Type": "String",
       "Default": ""
     },
-    "IAMRole": {
+    "IAMProfile": {
       "Description" : "Enter IAM Role name",
       "Type" : "String",
       "Default": ""
@@ -215,7 +215,7 @@
   "AnalyticsEC2Instance": {
     "Type": "AWS::EC2::Instance",
     "Properties": {
-      "IamInstanceProfile": { "Ref": "IAMRole" },
+      "IamInstanceProfile": { "Ref": "IAMProfile" },
       "DisableApiTermination": "false",
       "InstanceInitiatedShutdownBehavior": "stop",
       "InstanceType": {"Ref": "InstanceType"},

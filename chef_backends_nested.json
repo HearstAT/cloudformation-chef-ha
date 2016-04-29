@@ -34,6 +34,11 @@
       "Type" : "String",
       "Default": ""
     },
+    "IAMProfile": {
+      "Description" : "Enter IAM Role name",
+      "Type" : "String",
+      "Default": ""
+    },
     "AccessKey": {
       "Description" : "Enter User Access Key",
       "Type" : "String",
@@ -279,7 +284,7 @@
   "BackendPrimaryEC2Instance": {
     "Type": "AWS::EC2::Instance",
       "Properties": {
-        "IamInstanceProfile": { "Ref": "IAMRole" },
+        "IamInstanceProfile": { "Ref": "IAMProfile" },
         "DisableApiTermination": "false",
         "InstanceInitiatedShutdownBehavior": "stop",
         "InstanceType": {"Ref": "InstanceType"},
@@ -376,7 +381,7 @@
       "Type": "AWS::EC2::Instance",
       "DependsOn": ["BackendPrimaryEC2Instance", "PrimaryWaitCondition"],
       "Properties": {
-        "IamInstanceProfile": { "Ref": "IAMRole" },
+        "IamInstanceProfile": { "Ref": "IAMProfile" },
         "DisableApiTermination": "false",
         "InstanceInitiatedShutdownBehavior": "stop",
         "InstanceType": {"Ref": "InstanceType"},
@@ -409,6 +414,7 @@
                 "curl -Sl ", { "Ref" : "UserDataScript" }," -o /tmp/userdata.sh\n",
                 "chmod +x /tmp/userdata.sh \n",
                 "export REGION='", {"Ref" : "AWS::Region" } ,"' \n ",
+                "export IAM_ROLE='", {"Ref" : "IAMRole" } ,"' \n ",
                 "export ENI='", {"Ref" : "FailoverENI" } ,"' \n ",
                 "export VIP='", {"Ref" : "VIP" } ,"' \n ",
                 "export DNS='", {"Ref" : "FailoverInternalDNS" } ,"' \n ",
