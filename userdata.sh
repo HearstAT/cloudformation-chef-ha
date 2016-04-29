@@ -81,6 +81,9 @@ s3fs -o allow_other -o umask=000 -o use_cache=/tmp -o iam_role=${IAM_ROLE} -o en
 
 echo -e "${BUCKET} ${S3DIR} fuse.s3fs rw,_netdev,allow_other,umask=0022,use_cache=/tmp,iam_role=${IAM_ROLE},endpoint=${REGION},retries=5,multireq_max=5 0 0" >> /etc/fstab || error_exit 'Failed to add mount info to fstab'
 
+# Sleep to allow s3fs to connect
+sleep 20
+
 if [ ${ROLE} == 'primary' ]; then
     # make directories
     mkdir -p ${S3DIR}/certs ${S3DIR}/mail ${S3DIR}/newrelic ${S3DIR}/sumologic
