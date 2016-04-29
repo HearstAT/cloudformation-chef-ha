@@ -85,10 +85,8 @@ if [ ${ROLE} == 'primary' ]; then
     # make directories
     mkdir -p ${S3DIR}/certs ${S3DIR}/mail ${S3DIR}/newrelic ${S3DIR}/sumologic
 
-    set +xv
-    echo "Setting up Citadel items, turning of verbose"
     ## Certs and Keys
-    curl -s ${SSL_CERT} -o ${S3DIR}/certs/crt
+    curl -Sl ${SSL_CERT} -o ${S3DIR}/certs/crt
     echo "${SSL_KEY}" >> ${S3DIR}/certs/key
 
     ## Mail
@@ -101,8 +99,6 @@ if [ ${ROLE} == 'primary' ]; then
     echo "${SUMO_PASSWORD}" >> ${S3DIR}/sumologic/password
     echo "${SUMO_ACCESS_ID}" >> ${S3DIR}/sumologic/access_id
     echo "${SUMO_ACCESS_KEY}" >> ${S3DIR}/sumologic/access_key
-    echo "Citadel items complete, turning verbose back on"
-    set -xv
 fi
 
 
