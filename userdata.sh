@@ -50,41 +50,39 @@
 
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
-if [ ${ROLE} == 'primary' -o 'failover' ]; then
-    # Install S3FS Dependencies
-    sudo apt-get install -y automake autotools-dev g++ git libcurl4-gnutls-dev libfuse-dev libssl-dev libxml2-dev make pkg-config
+# Install S3FS Dependencies
+sudo apt-get install -y automake autotools-dev g++ git libcurl4-gnutls-dev libfuse-dev libssl-dev libxml2-dev make pkg-config
 
-    # Install S3FS
+# Install S3FS
 
-    # If directory exists, remove it
-    if [ -d "/tmp/s3fs-fuse" ]; then
-      rm -rf /tmp/s3fs-fuse
-    fi
-
-    # If s3fs command doesn't exist, install
-    if [ ! -f "/usr/local/bin/s3fs" ]; then
-      cd /tmp
-      git clone https://github.com/s3fs-fuse/s3fs-fuse.git || error_exit 'Failed to clone s3fs-fuse'
-      cd s3fs-fuse
-      ./autogen.sh || error_exit 'Failed to run autogen for s3fs-fuse'
-      ./configure || error_exit 'Failed to run configure for s3fs-fuse'
-      make || error_exit 'Failed to make s3fs-fuse'
-      sudo make install || error_exit 'Failed run make-install s3fs-fuse'
-    fi
-
-    # Create S3FS Mount Directory
-    if [ ! -d "${S3DIR}" ]; then
-      mkdir ${S3DIR}
-    fi
-
-    # Mount S3 Bucket to Directory
-    s3fs -o allow_other -o umask=000 -o use_cache=/tmp -o iam_role=${IAM_ROLE} -o endpoint=${REGION} ${BUCKET} ${S3DIR} || error_exit 'Failed to mount s3fs'
-
-    echo -e "${BUCKET} ${S3DIR} fuse.s3fs rw,_netdev,allow_other,umask=0022,use_cache=/tmp,iam_role=${IAM_ROLE},endpoint=${REGION},retries=5,multireq_max=5 0 0" >> /etc/fstab || error_exit 'Failed to add mount info to fstab'
-
-    # Sleep to allow s3fs to connect
-    sleep 20
+# If directory exists, remove it
+if [ -d "/tmp/s3fs-fuse" ]; then
+  rm -rf /tmp/s3fs-fuse
 fi
+
+# If s3fs command doesn't exist, install
+if [ ! -f "/usr/local/bin/s3fs" ]; then
+  cd /tmp
+  git clone https://github.com/s3fs-fuse/s3fs-fuse.git || error_exit 'Failed to clone s3fs-fuse'
+  cd s3fs-fuse
+  ./autogen.sh || error_exit 'Failed to run autogen for s3fs-fuse'
+  ./configure || error_exit 'Failed to run configure for s3fs-fuse'
+  make || error_exit 'Failed to make s3fs-fuse'
+  sudo make install || error_exit 'Failed run make-install s3fs-fuse'
+fi
+
+# Create S3FS Mount Directory
+if [ ! -d "${S3DIR}" ]; then
+  mkdir ${S3DIR}
+fi
+
+# Mount S3 Bucket to Directory
+s3fs -o allow_other -o umask=000 -o use_cache=/tmp -o iam_role=${IAM_ROLE} -o endpoint=${REGION} ${BUCKET} ${S3DIR} || error_exit 'Failed to mount s3fs'
+
+echo -e "${BUCKET} ${S3DIR} fuse.s3fs rw,_netdev,allow_other,umask=0022,use_cache=/tmp,iam_role=${IAM_ROLE},endpoint=${REGION},retries=5,multireq_max=5 0 0" >> /etc/fstab || error_exit 'Failed to add mount info to fstab'
+
+# Sleep to allow s3fs to connect
+sleep 20
 
 if [ ${ROLE} == 'primary' ]; then
     # make directories
