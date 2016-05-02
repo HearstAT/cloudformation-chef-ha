@@ -315,31 +315,31 @@
     "AWS::CloudFormation::Interface" : {
         "ParameterGroups" : [
             {
-                "Label" : {"default": "Instance & Network Configuration"},
+                "Label" : { "default": "Instance & Network Configuration" },
                 "Parameters" : ["BackendInstanceType", "FrontendInstanceType", "AnalyticsInstanceType", "KeyName", "SSLCertificateARN", "VPC", "SSHSecurityGroup", "AvailabilityZoneA", "AvailabilityZoneB", "HostedZone", "BackendVIP"]
             },
             {
-                "Label" : {"default": "Stack Configuration"},
+                "Label" : { "default": "Stack Configuration" },
                 "Parameters" : ["BackendTemplateURL", "FrontendTemplateURL", "AnalyticsTemplateURL"]
             },
             {
-                "Label" : {"default": "Chef Configuration"},
+                "Label" : { "default": "Chef Configuration" },
                 "Parameters" : ["ChefSubdomain", "AnalyticsSubdomain", "SSLCRT", "SSLKEY", "SignupDisable", "SupportEmail", "LicenseCount", "ChefDir", "S3Dir", "EBSMountPath", "BackupEnable", "RestoreFile"]
             },
             {
-                "Label" : {"default": "Mail Configuration (Optional)"},
+                "Label" : { "default": "Mail Configuration (Optional)" },
                 "Parameters" : ["MailCreds", "MailHost", "MailPort"]
             },
             {
-                "Label" : {"default": "New Relic Configuration (Optional)"},
+                "Label" : { "default": "New Relic Configuration (Optional)" },
                 "Parameters" : ["NewRelicLicense"]
             },
             {
-                "Label" : {"default": "Sumologic Configuration (Optional)"},
+                "Label" : { "default": "Sumologic Configuration (Optional)" },
                 "Parameters" : ["SumologicAccessID", "SumologicAccessKey", "SumologicPassword"]
             },
             {
-                "Label" : {"default": "External Build Items"},
+                "Label" : { "default": "External Build Items" },
                 "Parameters" : ["Cookbook", "CookbookGit", "CookbookGitBranch", "UserDataScript"]
             }
         ]
@@ -880,6 +880,7 @@
           "Cookbook": { "Ref": "Cookbook" },
           "CookbookGit": { "Ref": "CookbookGit" },
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
+          "ChefDir": { "Ref": "ChefDir" },
           "S3Dir": { "Ref": "S3Dir" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
@@ -971,6 +972,7 @@
           "Cookbook": { "Ref": "Cookbook" },
           "CookbookGit": { "Ref": "CookbookGit" },
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
+          "ChefDir": { "Ref": "ChefDir" },
           "S3Dir": { "Ref": "S3Dir" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
