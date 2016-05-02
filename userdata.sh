@@ -106,15 +106,15 @@ fi
 
 
 
-# Add chef repo
-curl -s https://packagecloud.io/install/repositories/chef/stable/script.deb.sh | bash
+# install chef
+curl -L https://omnitruck.chef.io/install.sh | bash || error_exit 'could no install chef'
 
 # Install cfn bootstraping tools
-easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz || error_exit "could not install cfn bootstrap tools"
 
 if [ ${ROLE} == 'primary' ]; then
     # Install awscli
-    pip install awscli
+    pip install awscli || error_exit 'could not install aws cli tools'
     # Run aws config
     if [ -n $(command -v aws) ]; then
         set +xv
@@ -142,28 +142,13 @@ mkdir -p ${CHEFDIR}
 hostname  ${DNS}  || error_exit 'Failed to set hostname'
 echo  ${DNS}  > /etc/hostname || error_exit 'Failed to set hostname file'
 
-# install Chef and Chef Core
-apt-get install -y chef || error_exit 'Failed to install chef core'
-
-# Install ChefHA if BackEnd
-if [ ${ROLE} == 'primary' ] || [ ${ROLE} == 'failover' ]; then
-  apt-get install -y chef-ha chef-server-core
-elif [ ${ROLE} == 'frontend' ]; then
-  apt-get install -y chef-manage chef-server-core
-elif [ ${ROLE} == 'analytics' ]; then
-  apt-get install -y opscode-analytics
-else
-  error_exit 'Role not found'
-fi
-
-# Build out role to run
 
 cat > "${CHEFDIR}/${ROLE}.json" << EOF
 {
   "citadel": {
      "bucket": "${BUCKET}"
   },
-  "cf_ha_chef": {
+  "${COOKBOOK}": {
     "backup": {
       "restore": false,
       "enable_backups": ${BACKUP_ENABLE},
@@ -218,7 +203,8 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
     "ebs_device": "${EBS_MOUNT_PATH}"
   },
   "run_list": [
-    "recipe[cf_ha_chef::${ROLE}]"
+    "recipe[apt-chef]",
+    "recipe[${COOKBOOK}::${ROLE}]"
   ]
 }
 EOF
