@@ -990,10 +990,6 @@
     }
   },
   "Outputs": {
-    "BackupRestoreCommand": {
-      "Description" : "Command to run if needing to restore from a backup",
-      "Value" : { "Fn::Join" : [ "", ["ssh", " -tt", " ubuntu@", { "Fn::GetAtt" : [ "BackendStack", "Outputs.PrimaryPublicIP" ] } ," 'chef-client -c '/root/chef/client.rb' -j /root/.chef/primary_post_restore.json'" ] ] }
-    },
     "ChefBucket" : {
       "Description" : "Bucket that all chef backups will be stored",
       "Value" : { "Ref": "ChefBucket" }
