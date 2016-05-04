@@ -188,6 +188,11 @@
         "Default": "",
         "Description": "Enter New Relic License Key"
     },
+    "NewRelicAppName": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter New Relic Application Name"
+    },
     "SumologicAccessID": {
         "Type": "String",
         "NoEcho": "true",
@@ -355,6 +360,7 @@
                 "export SSL_CERT='", { "Ref" : "SSLCRT" } ,"'\n",
                 "export SSL_KEY='", { "Ref" : "SSLKEY" } ,"'\n",
                 "export NR_LICENSE='", { "Ref" : "NewRelicLicense" } ,"'\n",
+                "export NR_APPNAME='", { "Ref" : "NewRelicAppName" } ,"'\n",
                 "export SUMO_ACCESS_ID='", { "Ref" : "SumologicAccessID" } ,"'\n",
                 "export SUMO_ACCESS_KEY='", { "Ref" : "SumologicAccessKey" } ,"'\n",
                 "export SUMO_PASSWORD='", { "Ref" : "SumologicPassword" } ,"'\n",
@@ -435,6 +441,7 @@
                 "export RESTORE_FILE='", { "Ref" : "RestoreFile" } ,"'\n",
                 "export CHEFDIR='", { "Ref" : "ChefDir" } ,"'\n",
                 "export BUCKET='", { "Ref" : "Bucket" } ,"'\n",
+                "export NR_APPNAME='", { "Ref" : "NewRelicAppName" } ,"'\n",
                 "export S3DIR='", { "Ref" : "S3Dir" } ,"'\n",
                 "export COOKBOOK='", { "Ref" : "Cookbook" } ,"'\n",
                 "export COOKBOOK_GIT='", { "Ref" : "CookbookGit" } ,"'\n",

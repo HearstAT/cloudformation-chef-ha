@@ -82,6 +82,11 @@
         "Default": "",
         "Description": "Enter Mail Credentials (e.g.; $username:$password)"
     },
+    "NewRelicAppName": {
+        "Type": "String",
+        "Default": "chef_ha_stack",
+        "Description": "Enter New Relic Application Name"
+    },
     "NewRelicLicense": {
         "Type": "String",
         "NoEcho": "true",
@@ -332,7 +337,7 @@
             },
             {
                 "Label" : { "default": "New Relic Configuration (Optional)" },
-                "Parameters" : ["NewRelicLicense"]
+                "Parameters" : ["NewRelicAppName","NewRelicLicense"]
             },
             {
                 "Label" : { "default": "Sumologic Configuration (Optional)" },
@@ -745,6 +750,7 @@
           "SumologicAccessID": { "Ref": "SumologicAccessID" },
           "SumologicAccessKey": { "Ref": "SumologicAccessKey" },
           "SumologicPassword": { "Ref": "SumologicPassword" },
+          "NewRelicAppName": { "Ref": "NewRelicAppName" },
           "NewRelicLicense": { "Ref": "NewRelicLicense" },
           "MailCreds": { "Ref": "MailCreds" },
           "MailHost": { "Ref": "MailHost" },
@@ -882,6 +888,7 @@
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
           "ChefDir": { "Ref": "ChefDir" },
           "S3Dir": { "Ref": "S3Dir" },
+          "NewRelicAppName": { "Ref": "NewRelicAppName" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
           "MailHost": { "Ref": "MailHost" },
@@ -974,6 +981,7 @@
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
           "ChefDir": { "Ref": "ChefDir" },
           "S3Dir": { "Ref": "S3Dir" },
+          "NewRelicAppName": { "Ref": "NewRelicAppName" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
           "MailHost": { "Ref": "MailHost" },

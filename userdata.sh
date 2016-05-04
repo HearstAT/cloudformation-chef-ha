@@ -38,6 +38,7 @@
 # ${SSL_CRT} == SSLCRT
 # ${SSL_KEY} == SSLKEY
 # ${NR_LICENSE} == NewRelicLicense
+# ${NR_APPNAME} == NewRelicAppName
 # ${SUMO_ACCESS_ID} == SumologicAccessID
 # ${SUMO_ACCESS_KEY} == SumologicAccessKey
 # ${SUMO_PASSWORD} == SumologicPassword
@@ -145,67 +146,70 @@ echo  ${DNS}  > /etc/hostname || error_exit 'Failed to set hostname file'
 
 cat > "${CHEFDIR}/${ROLE}.json" << EOF
 {
-  "citadel": {
-     "bucket": "${BUCKET}"
-  },
-  "${COOKBOOK}": {
-    "backup": {
-      "restore": false,
-      "enable_backups": ${BACKUP_ENABLE},
-      "restore_file": "${RESTORE_FILE}"
+    "citadel": {
+        "bucket": "${BUCKET}"
     },
-    "licensecount": "${LICENSE_COUNT}",
-    "manage": {
-     "signupdisable": ${SIGNUP_DISABLE},
-     "supportemail": "${SUPPORT_EMAIL}"
+    "${COOKBOOK}": {
+        "backup": {
+            "restore": false,
+            "enable_backups": ${BACKUP_ENABLE},
+            "restore_file": "${RESTORE_FILE}"
+        },
+        "licensecount": "${LICENSE_COUNT}",
+        "manage": {
+            "signupdisable": ${SIGNUP_DISABLE},
+            "supportemail": "${SUPPORT_EMAIL}"
+        },
+        "mail": {
+            "relayhost": "${MAIL_HOST}",
+            "relayport": "${MAIL_PORT}"
+        },
+        "s3": {
+            "dir": "${S3DIR}"
+        },
+        "backendprimary": {
+           "fqdn":  "${PRIMARY_DNS}",
+           "ip_address": "${PRIMARY_IP}"
+        },
+        "backendfailover": {
+            "fqdn": "${FAIL_DNS}",
+            "ip_address": "${FAIL_IP}"
+        },
+        "backend_vip": {
+            "fqdn": "${VIP_DNS}",
+            "ip_address": "${VIP}"
+        },
+        "frontends": {
+            "fe01": {
+                "fqdn": "${FE01_DNS}",
+                "ip_address": "${FE01_IP}"
+            },
+            "fe02": {
+                "fqdn": "${FE02_DNS}",
+                "ip_address": "${FE02_IP}"
+            }
+        },
+        "newrelic": {
+            "appname": "${NR_APPNAME}"
+        },
+        "analytics": {
+            "url":  "chef-analytics.${DOMAIN}",
+            "stage_subdomain": "${ANALYTICS_SUBDOMAIN}.${DOMAIN}",
+            "fqdn": "${ANALYTICS_DNS}",
+            "ip_address": "${ANALYTICS_IP}"
+        },
+        "api_fqdn": "chef.${DOMAIN}",
+        "domain": "${DOMAIN}",
+        "stage_subdomain": "${SUBDOMAIN}",
+        "aws_access_key_id": "${ACCESS_KEY}",
+        "aws_secret_access_key": "${SECRET_KEY}",
+        "ebs_volume_id": "${EBS_ID}",
+        "ebs_device": "${EBS_MOUNT_PATH}"
     },
-    "mail": {
-     "relayhost": "${MAIL_HOST}",
-     "relayport": "${MAIL_PORT}"
-    },
-    "s3": {
-     "dir": "${S3DIR}"
-    },
-    "backendprimary": {
-       "fqdn":  "${PRIMARY_DNS}",
-       "ip_address": "${PRIMARY_IP}"
-    },
-    "backendfailover": {
-       "fqdn": "${FAIL_DNS}",
-       "ip_address": "${FAIL_IP}"
-    },
-    "backend_vip": {
-         "fqdn": "${VIP_DNS}",
-         "ip_address": "${VIP}"
-    },
-    "frontends": {
-     "fe01": {
-         "fqdn": "${FE01_DNS}",
-         "ip_address": "${FE01_IP}"
-     },
-     "fe02": {
-         "fqdn": "${FE02_DNS}",
-         "ip_address": "${FE02_IP}"
-     }
-    },
-    "analytics": {
-     "url":  "chef-analytics.${DOMAIN}",
-     "stage_subdomain": "${ANALYTICS_SUBDOMAIN}.${DOMAIN}",
-     "fqdn": "${ANALYTICS_DNS}",
-     "ip_address": "${ANALYTICS_IP}"
-    },
-    "api_fqdn": "chef.${DOMAIN}",
-    "domain": "${DOMAIN}",
-    "stage_subdomain": "${SUBDOMAIN}",
-    "aws_access_key_id": "${ACCESS_KEY}",
-    "aws_secret_access_key": "${SECRET_KEY}",
-    "ebs_volume_id": "${EBS_ID}",
-    "ebs_device": "${EBS_MOUNT_PATH}"
-  },
-  "run_list": [
-    "recipe[apt-chef]",
-    "recipe[${COOKBOOK}::${ROLE}]"
-  ]
+    "run_list": [
+        "recipe[apt-chef]",
+        "recipe[${COOKBOOK}::${ROLE}]"
+    ]
 }
 EOF
 

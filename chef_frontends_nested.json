@@ -129,6 +129,11 @@
       "Type" : "String",
       "Default": ""
     },
+    "NewRelicAppName": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter New Relic Application Name"
+    },
     "S3Dir": {
         "Type": "String",
         "Default": "",
@@ -370,6 +375,7 @@
                 "export SIGNUP_DISABLE='", { "Ref" : "SignupDisable" } ,"'\n",
                 "export SUPPORT_EMAIL='", { "Ref" : "SupportEmail" } ,"'\n",
                 "export S3DIR='", { "Ref" : "S3Dir" } ,"'\n",
+                "export NR_APPNAME='", { "Ref" : "NewRelicAppName" } ,"'\n",
                 "export MAIL_HOST='", { "Ref" : "MailHost" } ,"'\n",
                 "export MAIL_PORT='", { "Ref" : "MailPort" } ,"'\n",
                 "export LICENSE_COUNT='", { "Ref" : "LicenseCount" } ,"'\n",
@@ -425,9 +431,9 @@
                 "chmod +x /tmp/userdata.sh\n",
                 "export REGION='", { "Ref" : "AWS::Region" } ,"'\n",
                 "export IAM_ROLE='", { "Ref" : "IAMRole" } ,"'\n",
-                "export ENI='", { "Ref" : "FE01ENI" } ,"'\n",
+                "export ENI='", { "Ref" : "FE02ENI" } ,"'\n",
                 "export VIP='", { "Ref" : "VIP" } ,"'\n",
-                "export DNS='", { "Ref" : "FE01DNS" } ,"'\n",
+                "export DNS='", { "Ref" : "FE02DNS" } ,"'\n",
                 "export PRIMARY_DNS='", { "Ref" : "PrimaryInternalDNS" } ,"'\n",
                 "export PRIMARY_IP='", { "Ref" : "PrimaryIP" } ,"'\n",
                 "export FAIL_DNS='", { "Ref" : "FailoverInternalDNS" } ,"'\n",
@@ -450,6 +456,7 @@
                 "export COOKBOOK_BRANCH='", { "Ref" : "CookbookGitBranch" } ,"'\n",
                 "export SIGNUP_DISABLE='", { "Ref" : "SignupDisable" } ,"'\n",
                 "export SUPPORT_EMAIL='", { "Ref" : "SupportEmail" } ,"'\n",
+                "export NR_APPNAME='", { "Ref" : "NewRelicAppName" } ,"'\n",
                 "export S3DIR='", { "Ref" : "S3Dir" } ,"'\n",
                 "export MAIL_HOST='", { "Ref" : "MailHost" } ,"'\n",
                 "export MAIL_PORT='", { "Ref" : "MailPort" } ,"'\n",

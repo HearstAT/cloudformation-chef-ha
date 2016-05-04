@@ -129,6 +129,11 @@
         "Default": "",
         "Description": "Path to mount S3 Bucket to (created during CFN run)"
     },
+    "NewRelicAppName": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter New Relic Application Name"
+    },
     "S3Dir": {
         "Type": "String",
         "Default": "",
@@ -278,6 +283,7 @@
               "export COOKBOOK_GIT='", { "Ref" : "CookbookGit" } ,"'\n",
               "export COOKBOOK_BRANCH='", { "Ref" : "CookbookGitBranch" } ,"'\n",
               "export SIGNUP_DISABLE='", { "Ref" : "SignupDisable" } ,"'\n",
+              "export NR_APPNAME='", { "Ref" : "NewRelicAppName" } ,"'\n",
               "export S3DIR='", { "Ref" : "S3Dir" } ,"'\n",
               "export SUPPORT_EMAIL='", { "Ref" : "SupportEmail" } ,"'\n",
               "export MAIL_HOST='", { "Ref" : "MailHost" } ,"'\n",
