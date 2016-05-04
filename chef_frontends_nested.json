@@ -129,6 +129,16 @@
       "Type" : "String",
       "Default": ""
     },
+    "NewRelicEnable": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Choose to enable/disable New Relic"
+    },
+    "SumologicEnable": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Choose to enable/disable Sumologic"
+    },
     "NewRelicAppName": {
         "Type": "String",
         "Default": "",
@@ -375,6 +385,8 @@
                 "export SIGNUP_DISABLE='", { "Ref" : "SignupDisable" } ,"'\n",
                 "export SUPPORT_EMAIL='", { "Ref" : "SupportEmail" } ,"'\n",
                 "export S3DIR='", { "Ref" : "S3Dir" } ,"'\n",
+                "export NR_ENABLE='", { "Ref" : "NewRelicEnable" } ,"'\n",
+                "export SUMO_ENABLE='", { "Ref" : "SumologicEnable" } ,"'\n",
                 "export NR_APPNAME='", { "Ref" : "NewRelicAppName" } ,"'\n",
                 "export MAIL_HOST='", { "Ref" : "MailHost" } ,"'\n",
                 "export MAIL_PORT='", { "Ref" : "MailPort" } ,"'\n",
@@ -458,6 +470,8 @@
                 "export SUPPORT_EMAIL='", { "Ref" : "SupportEmail" } ,"'\n",
                 "export NR_APPNAME='", { "Ref" : "NewRelicAppName" } ,"'\n",
                 "export S3DIR='", { "Ref" : "S3Dir" } ,"'\n",
+                "export NR_ENABLE='", { "Ref" : "NewRelicEnable" } ,"'\n",
+                "export SUMO_ENABLE='", { "Ref" : "SumologicEnable" } ,"'\n",
                 "export MAIL_HOST='", { "Ref" : "MailHost" } ,"'\n",
                 "export MAIL_PORT='", { "Ref" : "MailPort" } ,"'\n",
                 "export LICENSE_COUNT='", { "Ref" : "LicenseCount" } ,"'\n",

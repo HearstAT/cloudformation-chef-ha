@@ -93,6 +93,18 @@
         "Default": "",
         "Description": "Enter New Relic License Key"
     },
+    "NewRelicEnable": {
+        "Type": "String",
+        "Default": "true",
+        "AllowedValues": ["true", "false"],
+        "Description": "Choose to enable/disable New Relic"
+    },
+    "SumologicEnable": {
+        "Type": "String",
+        "Default": "true",
+        "AllowedValues": ["true", "false"],
+        "Description": "Choose to enable/disable Sumologic"
+    },
     "SumologicAccessID": {
         "Type": "String",
         "NoEcho": "true",
@@ -337,11 +349,11 @@
             },
             {
                 "Label" : { "default": "New Relic Configuration (Optional)" },
-                "Parameters" : ["NewRelicAppName","NewRelicLicense"]
+                "Parameters" : ["NewRelicEnable","NewRelicAppName","NewRelicLicense"]
             },
             {
                 "Label" : { "default": "Sumologic Configuration (Optional)" },
-                "Parameters" : ["SumologicAccessID", "SumologicAccessKey", "SumologicPassword"]
+                "Parameters" : ["SumologicEnable", "SumologicAccessID", "SumologicAccessKey", "SumologicPassword"]
             },
             {
                 "Label" : { "default": "External Build Items" },
@@ -742,6 +754,8 @@
           "CookbookGit": { "Ref": "CookbookGit" },
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
           "S3Dir": { "Ref": "S3Dir" },
+          "SumologicEnable": { "Ref": "SumologicEnable" },
+          "NewRelicEnable": { "Ref": "NewRelicEnable" },
           "ChefDir": { "Ref": "ChefDir" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
@@ -888,6 +902,8 @@
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
           "ChefDir": { "Ref": "ChefDir" },
           "S3Dir": { "Ref": "S3Dir" },
+          "SumologicEnable": { "Ref": "SumologicEnable" },
+          "NewRelicEnable": { "Ref": "NewRelicEnable" },
           "NewRelicAppName": { "Ref": "NewRelicAppName" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
@@ -981,6 +997,8 @@
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
           "ChefDir": { "Ref": "ChefDir" },
           "S3Dir": { "Ref": "S3Dir" },
+          "SumologicEnable": { "Ref": "SumologicEnable" },
+          "NewRelicEnable": { "Ref": "NewRelicEnable" },
           "NewRelicAppName": { "Ref": "NewRelicAppName" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },

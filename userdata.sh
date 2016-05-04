@@ -39,6 +39,8 @@
 # ${SSL_KEY} == SSLKEY
 # ${NR_LICENSE} == NewRelicLicense
 # ${NR_APPNAME} == NewRelicAppName
+# ${NR_ENABLE} == NewRelicEnable
+# ${SUMO_ENABLE} == SumologicEnable
 # ${SUMO_ACCESS_ID} == SumologicAccessID
 # ${SUMO_ACCESS_KEY} == SumologicAccessKey
 # ${SUMO_PASSWORD} == SumologicPassword
@@ -190,7 +192,11 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
             }
         },
         "newrelic": {
-            "appname": "${NR_APPNAME}"
+            "appname": "${NR_APPNAME}",
+            "enable": ${NR_ENABLE}
+        },
+        "sumologic": {
+            "enable": ${SUMO_ENABLE}
         },
         "analytics": {
             "url":  "chef-analytics.${DOMAIN}",

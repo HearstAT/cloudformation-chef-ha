@@ -129,6 +129,16 @@
         "Default": "",
         "Description": "Path to mount S3 Bucket to (created during CFN run)"
     },
+    "NewRelicEnable": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Choose to enable/disable New Relic"
+    },
+    "SumologicEnable": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Choose to enable/disable Sumologic"
+    },
     "NewRelicAppName": {
         "Type": "String",
         "Default": "",
@@ -285,6 +295,8 @@
               "export SIGNUP_DISABLE='", { "Ref" : "SignupDisable" } ,"'\n",
               "export NR_APPNAME='", { "Ref" : "NewRelicAppName" } ,"'\n",
               "export S3DIR='", { "Ref" : "S3Dir" } ,"'\n",
+              "export NR_ENABLE='", { "Ref" : "NewRelicEnable" } ,"'\n",
+              "export SUMO_ENABLE='", { "Ref" : "SumologicEnable" } ,"'\n",
               "export SUPPORT_EMAIL='", { "Ref" : "SupportEmail" } ,"'\n",
               "export MAIL_HOST='", { "Ref" : "MailHost" } ,"'\n",
               "export MAIL_PORT='", { "Ref" : "MailPort" } ,"'\n",
