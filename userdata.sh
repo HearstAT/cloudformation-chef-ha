@@ -96,15 +96,15 @@ if [ ${ROLE} == 'primary' ]; then
     echo "${SSL_KEY}" >> ${S3DIR}/certs/key
 
     ## Mail
-    echo "${MAIL_HOST} ${MAIL_CREDS}" >> ${S3DIR}/mail/creds
+    echo "${MAIL_HOST} ${MAIL_CREDS}" | tr -d '\\n' >> ${S3DIR}/mail/creds
 
     ## New Relic
-    echo "${NR_LICENSE}" >> ${S3DIR}/newrelic/license
+    echo "${NR_LICENSE}" | tr -d '\\n' >> ${S3DIR}/newrelic/license
 
     ## Sumologic
-    echo "${SUMO_PASSWORD}" >> ${S3DIR}/sumologic/password
-    echo "${SUMO_ACCESS_ID}" >> ${S3DIR}/sumologic/access_id
-    echo "${SUMO_ACCESS_KEY}" >> ${S3DIR}/sumologic/access_key
+    echo "${SUMO_PASSWORD}" | tr -d '\\n' >> ${S3DIR}/sumologic/password
+    echo "${SUMO_ACCESS_ID}" | tr -d '\\n' >> ${S3DIR}/sumologic/access_id
+    echo "${SUMO_ACCESS_KEY}" | tr -d '\\n' >> ${S3DIR}/sumologic/access_key
 fi
 
 
