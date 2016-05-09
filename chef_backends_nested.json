@@ -164,6 +164,42 @@
       "Default": "",
       "Description": "Enter how many licenses you have purchased"
     },
+    "DBChoice": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Choose between an external or internal DB configuration"
+    },
+    "DBUser": {
+        "Type": "String",
+        "Default": "",
+        "Description": "(External Only) Enter DB User Name"
+    },
+    "DBPassword": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "(External Only) Enter DB Password"
+    },
+    "DBPort": {
+        "Type": "String",
+        "Default": "",
+        "Description": "(External Only) Enter DB Port"
+    },
+    "DBURL": {
+        "Type": "String",
+        "Default": "",
+        "Description": "(External Only) Enter DB URL or VIP"
+    },
+    "CookbookChoice": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Choose between an external or internal Cookbook storage configuration"
+    },
+    "CookbookBucket": {
+        "Type": "String",
+        "Default": "",
+        "Description": "(External Only) Enter S3 Bucket Name for Cookbook Storage"
+    },
     "SSLCRT": {
         "Type": "String",
         "NoEcho": "true",
@@ -356,6 +392,13 @@
                 "export SUBDOMAIN='", { "Ref": "HostedSubdomain" } ,"'\n",
                 "export EBS_ID='", { "Ref" : "BackendEBSID" } ,"'\n",
                 "export EBS_MOUNT_PATH='", { "Ref" : "EBSMountPath" } ,"'\n",
+                "export DB_CHOICE='", { "Ref" : "DBChoice" } ,"'\n",
+                "export DB_USER='", { "Ref" : "DBUser" } ,"'\n",
+                "export DB_PASSWORD='", { "Ref" : "DBPassword" } ,"'\n",
+                "export DB_PORT='", { "Ref" : "DBPort" } ,"'\n",
+                "export DB_URL='", { "Ref" : "DBURL" } ,"'\n",
+                "export COOKBOOK_CHOICE='", { "Ref" : "CookbookChoice" } ,"'\n",
+                "export COOKBOOK_BUCKET='", { "Ref" : "CookbookBucket" } ,"'\n",
                 "export BUCKET='", { "Ref" : "Bucket" } ,"'\n",
                 "export BACKUP_ENABLE='", { "Ref" : "BackupEnable" } ,"'\n",
                 "export RESTORE_FILE='", { "Ref" : "RestoreFile" } ,"'\n",

@@ -53,6 +53,20 @@
 
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
+
+# Conditional Variable Set
+if [ ${DB_CHOICE} == 'internal' ]; then
+    DB_EXT_ENABLE='false'
+else
+    DB_EXT_ENABLE='true'
+fi
+
+if [ ${COOKBOOK_CHOICE} == 'internal' ]; then
+    CB_EXT_ENABLE='false'
+else
+    CB_EXT_ENABLE='true'
+fi
+
 # Install S3FS Dependencies
 sudo apt-get install -y automake autotools-dev g++ git libcurl4-gnutls-dev libfuse-dev libssl-dev libxml2-dev make pkg-config
 
@@ -89,11 +103,17 @@ sleep 20
 
 if [ ${ROLE} == 'primary' ]; then
     # make directories
-    mkdir -p ${S3DIR}/certs ${S3DIR}/mail ${S3DIR}/newrelic ${S3DIR}/sumologic
+    mkdir -p ${S3DIR}/mail ${S3DIR}/newrelic ${S3DIR}/sumologic ${S3DIR}/db ${S3DIR}/aws
 
-    ## Certs and Keys
-    curl -Sl ${SSL_CERT} -o ${S3DIR}/certs/crt
-    echo "${SSL_KEY}" >> ${S3DIR}/certs/key
+    ## AWS Creds
+    echo "${ACCESS_KEY}" | tr -d '\\n' >> ${S3DIR}/aws/access_key
+    echo "${SECRET_KEY}" | tr -d '\\n' >> ${S3DIR}/aws/secret_key
+
+    ## DB Creds
+    if [ ${DB_CHOICE} == 'external' ]; then
+        echo "${DB_USER}" | tr -d '\\n' >> ${S3DIR}/db/username
+        echo "${DB_PASSWORD}" | tr -d '\\n' >> ${S3DIR}/db/password
+    fi
 
     ## Mail
     echo "${MAIL_HOST} ${MAIL_CREDS}" | tr -d '\\n' >> ${S3DIR}/mail/creds
@@ -166,6 +186,15 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
             "relayhost": "${MAIL_HOST}",
             "relayport": "${MAIL_PORT}"
         },
+        "database": {
+            "": ${DB_EXT_ENABLE},
+            "port": "${DB_PORT}",
+            "url": "${DB_URL}"
+        },
+        "cookbook": {
+            "": ${CB_EXT_ENABLE},
+            "bucket": "${COOKBOOK_BUCKET}"
+        },
         "s3": {
             "dir": "${S3DIR}"
         },
@@ -207,8 +236,6 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
         "api_fqdn": "chef.${DOMAIN}",
         "domain": "${DOMAIN}",
         "stage_subdomain": "${SUBDOMAIN}",
-        "aws_access_key_id": "${ACCESS_KEY}",
-        "aws_secret_access_key": "${SECRET_KEY}",
         "ebs_volume_id": "${EBS_ID}",
         "ebs_device": "${EBS_MOUNT_PATH}"
     },

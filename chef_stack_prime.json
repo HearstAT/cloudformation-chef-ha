@@ -65,6 +65,43 @@
         "Default": "25",
         "Description": "Enter how many licenses you have purchased"
     },
+    "DBChoice": {
+        "Type": "String",
+        "Default": "external",
+        "AllowedValues": ["external", "internal"],
+        "Description": "Choose between an external or internal DB configuration"
+    },
+    "DBUser": {
+        "Type": "String",
+        "Default": "",
+        "Description": "(External Only) Enter DB User Name"
+    },
+    "DBPassword": {
+        "Type": "String",
+        "Default": "",
+        "Description": "(External Only) Enter DB Password"
+    },
+    "DBPort": {
+        "Type": "String",
+        "Default": "",
+        "Description": "(External Only) Enter DB Port"
+    },
+    "DBURL": {
+        "Type": "String",
+        "Default": "",
+        "Description": "(External Only) Enter DB URL or VIP"
+    },
+    "CookbookChoice": {
+        "Type": "String",
+        "Default": "external",
+        "AllowedValues": ["external", "internal"],
+        "Description": "Choose between an external or internal Cookbook storage configuration"
+    },
+    "CookbookBucket": {
+        "Type": "String",
+        "Default": "",
+        "Description": "(External Only) Enter S3 Bucket Name for Cookbook Storage"
+    },
     "SSLCRT": {
         "Type": "String",
         "Default": "",
@@ -342,6 +379,14 @@
             {
                 "Label" : { "default": "Chef Configuration" },
                 "Parameters" : ["ChefSubdomain", "AnalyticsSubdomain", "SSLCRT", "SSLKEY", "SignupDisable", "SupportEmail", "LicenseCount", "ChefDir", "S3Dir", "EBSMountPath", "BackupEnable", "RestoreFile"]
+            },
+            {
+                "Label" : { "default": "Database Configuration" },
+                "Parameters" : ["DBChoice","DBUser","DBPassword", "DBPort", "DBVIP"]
+            },
+            {
+                "Label" : { "default": "Cookbook Storage Configuration" },
+                "Parameters" : ["CookbookChoice","CookbookBucket"]
             },
             {
                 "Label" : { "default": "Mail Configuration (Optional)" },
@@ -759,6 +804,13 @@
           "ChefDir": { "Ref": "ChefDir" },
           "SignupDisable": { "Ref": "SignupDisable" },
           "SupportEmail": { "Ref": "SupportEmail" },
+          "DBChoice": { "Ref": "DBChoice" },
+          "DBUser": { "Ref": "DBUser" },
+          "DBPassword": { "Ref": "DBPassword" },
+          "DBPort": { "Ref": "DBPort" },
+          "DBVIP": { "Ref": "DBVIP" },
+          "CookbookChoice": { "Ref": "CookbookChoice" },
+          "CookbookBucket": { "Ref": "CookbookBucket" },
           "SSLCRT": { "Ref": "SSLCRT" },
           "SSLKEY": { "Ref": "SSLKEY" },
           "SumologicAccessID": { "Ref": "SumologicAccessID" },
