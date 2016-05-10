@@ -7,6 +7,11 @@
         "Default": "domain.com",
         "Description": "must match a route53 hosted domain/zone"
     },
+    "SecondaryDomain": {
+        "Type": "String",
+        "Default": "domain.com",
+        "Description": "If including a 2nd manual/non-aws domain (optional)"
+    },
     "ChefSubdomain": {
         "Type": "String",
         "Default": "chef-a",
@@ -78,6 +83,7 @@
     },
     "DBPassword": {
         "Type": "String",
+        "NoEcho": "true",
         "Default": "",
         "Description": "(External Only) Enter DB Password"
     },
@@ -91,6 +97,17 @@
         "Default": "",
         "Description": "(External Only) Enter DB URL or VIP"
     },
+    "ExistingBucketChoice": {
+        "Type": "String",
+        "Default": "false",
+        "AllowedValues": ["true", "false"],
+        "Description": "Choose to use an existing bucket from previous installation"
+    },
+    "ExistingBucket": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Leave Empty! Unless using existing bucket, then enter bucket name here"
+    },
     "CookbookChoice": {
         "Type": "String",
         "Default": "external",
@@ -101,17 +118,6 @@
         "Type": "String",
         "Default": "",
         "Description": "(External Only) Enter S3 Bucket Name for Cookbook Storage"
-    },
-    "SSLCRT": {
-        "Type": "String",
-        "Default": "",
-        "Description": "Enter SSL certifcate download url"
-    },
-    "SSLKEY": {
-        "Type": "String",
-        "NoEcho": "true",
-        "Default": "",
-        "Description": "Enter SSL key"
     },
     "MailCreds": {
         "Type": "String",
@@ -164,6 +170,12 @@
         "Type": "String",
         "Default": "/dev/xvdf",
         "Description": "Enter EC2 Mount Point for Backend EBS Device"
+    },
+    "Environment": {
+        "Description" : "Choose which environment you want to enable for Letsencrypt Certs",
+        "Type" : "String",
+        "Default": "production",
+        "AllowedValues": ["production", "stage"]
     },
     "S3Dir": {
         "Type": "String",
@@ -377,12 +389,16 @@
                 "Parameters" : ["BackendTemplateURL", "FrontendTemplateURL", "AnalyticsTemplateURL"]
             },
             {
+                "Label" : { "default": "Bucket Configuration" },
+                "Parameters" : ["ExistingBucketChoice", "ExistingBucket"]
+            },
+            {
                 "Label" : { "default": "Chef Configuration" },
-                "Parameters" : ["ChefSubdomain", "AnalyticsSubdomain", "SSLCRT", "SSLKEY", "SignupDisable", "SupportEmail", "LicenseCount", "ChefDir", "S3Dir", "EBSMountPath", "BackupEnable", "RestoreFile"]
+                "Parameters" : ["ChefSubdomain", "AnalyticsSubdomain", "Environment", "SignupDisable", "SupportEmail", "LicenseCount", "ChefDir", "S3Dir", "EBSMountPath", "BackupEnable", "RestoreFile"]
             },
             {
                 "Label" : { "default": "Database Configuration" },
-                "Parameters" : ["DBChoice","DBUser","DBPassword", "DBPort", "DBVIP"]
+                "Parameters" : ["DBChoice","DBUser","DBPassword", "DBPort", "DBURL"]
             },
             {
                 "Label" : { "default": "Cookbook Storage Configuration" },
@@ -481,6 +497,10 @@
       "Private"    : { "CIDR" : "172.33.40.0/24" }
     }
   },
+  "Conditions" : {
+    "CreateChefBucket" : {"Fn::Equals" : [{"Ref" : "ExistingBucketChoice"}, "false"]},
+    "ExternalCookbooks" : {"Fn::Equals" : [{"Ref" : "CookbookChoice"}, "external"]}
+  },
   "Resources" : {
     "PublicSubnetA" : {
       "Type" : "AWS::EC2::Subnet",
@@ -522,6 +542,7 @@
     },
     "ChefBucket" : {
       "Type" : "AWS::S3::Bucket",
+      "Condition" : "CreateChefBucket",
       "DeletionPolicy" : "Retain",
       "Properties" : {
         "AccessControl" : "Private"
@@ -553,8 +574,8 @@
             {
                 "Effect":"Allow",
                 "Action": [ "s3:*" ],
-                "Resource": [ { "Fn::Join" : [ "", [ "arn:aws:s3:::", { "Ref" : "ChefBucket" }, "/" ] ] },
-                              { "Fn::Join" : [ "", [ "arn:aws:s3:::", { "Ref" : "ChefBucket" }, "/*" ] ] } ]
+                "Resource": [ { "Fn::Join" : [ "", [ "arn:aws:s3:::",{"Fn::If" : ["CreateChefBucket", {"Ref" : "ChefBucket"}, {"Ref" : "ExistingBucket"}]}, "/" ] ] },
+                              { "Fn::Join" : [ "", [ "arn:aws:s3:::", {"Fn::If" : ["CreateChefBucket", {"Ref" : "ChefBucket"}, {"Ref" : "ExistingBucket"}]}, "/*" ] ] } ]
             },
             {
                 "Effect":"Allow",
@@ -606,6 +627,29 @@
             ] }
         } ]
       }
+    },
+    "ExternalCookbookPolicy": {
+        "Type": "AWS::IAM::Policy",
+        "Condition" : "ExternalCookbooks",
+            "Properties": {
+            "PolicyName": "root",
+            "PolicyDocument": {
+                "Version" : "2012-10-17",
+                "Statement":[
+                {
+                    "Effect":"Allow",
+                    "Action": [ "s3:*" ],
+                    "Resource": [ { "Fn::Join" : [ "", [ "arn:aws:s3:::", { "Ref" : "CookbookBucket" }, "/" ] ] },
+                                  { "Fn::Join" : [ "", [ "arn:aws:s3:::", { "Ref" : "CookbookBucket" }, "/*" ] ] } ]
+                },
+                {
+                    "Effect":"Allow",
+                    "Action": [ "s3:List*" ],
+                    "Resource": "arn:aws:s3:::*"
+                } ]
+            },
+            "Users": [ { "Ref": "ChefServerUser" } ]
+            }
     },
     "HostKeys" : {
       "Type" : "AWS::IAM::AccessKey",
@@ -789,12 +833,13 @@
           "FE01IP": { "Fn::GetAtt" : [ "FE01ENI", "PrimaryPrivateIpAddress" ] },
           "FE02IP": { "Fn::GetAtt" : [ "FE02ENI", "PrimaryPrivateIpAddress" ] },
           "HostedZone": { "Ref": "HostedZone" },
+          "SecondaryDomain": { "Ref": "SecondaryDomain" },
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "EBSMountPath": { "Ref" : "EBSMountPath" },
           "BackupEnable": { "Ref" : "BackupEnable" },
           "RestoreFile": { "Ref" : "RestoreFile" },
-          "Bucket": { "Ref" : "ChefBucket" },
+          "Bucket": {"Fn::If" : ["CreateChefBucket", {"Ref" : "ChefBucket"}, {"Ref" : "ExistingBucket"}]},
           "Cookbook": { "Ref": "Cookbook" },
           "CookbookGit": { "Ref": "CookbookGit" },
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
@@ -808,11 +853,10 @@
           "DBUser": { "Ref": "DBUser" },
           "DBPassword": { "Ref": "DBPassword" },
           "DBPort": { "Ref": "DBPort" },
-          "DBVIP": { "Ref": "DBVIP" },
+          "DBURL": { "Ref": "DBURL" },
           "CookbookChoice": { "Ref": "CookbookChoice" },
           "CookbookBucket": { "Ref": "CookbookBucket" },
-          "SSLCRT": { "Ref": "SSLCRT" },
-          "SSLKEY": { "Ref": "SSLKEY" },
+          "Environment": { "Ref": "Environment" },
           "SumologicAccessID": { "Ref": "SumologicAccessID" },
           "SumologicAccessKey": { "Ref": "SumologicAccessKey" },
           "SumologicPassword": { "Ref": "SumologicPassword" },
@@ -943,12 +987,13 @@
           "FE01IP": { "Fn::GetAtt" : [ "FE01ENI", "PrimaryPrivateIpAddress" ] },
           "FE02IP": { "Fn::GetAtt" : [ "FE02ENI", "PrimaryPrivateIpAddress" ] },
           "HostedZone": { "Ref": "HostedZone" },
+          "SecondaryDomain": { "Ref": "SecondaryDomain" },
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "EBSMountPath": { "Ref" : "EBSMountPath" },
           "BackupEnable": { "Ref" : "BackupEnable" },
           "RestoreFile": { "Ref" : "RestoreFile" },
-          "Bucket": { "Ref" : "ChefBucket" },
+          "Bucket": {"Fn::If" : ["CreateChefBucket", {"Ref" : "ChefBucket"}, {"Ref" : "ExistingBucket"}]},
           "Cookbook": { "Ref": "Cookbook" },
           "CookbookGit": { "Ref": "CookbookGit" },
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
@@ -1038,12 +1083,13 @@
           "FE01IP": { "Fn::GetAtt" : [ "FE01ENI", "PrimaryPrivateIpAddress" ] },
           "FE02IP": { "Fn::GetAtt" : [ "FE02ENI", "PrimaryPrivateIpAddress" ] },
           "HostedZone": { "Ref": "HostedZone" },
+          "SecondaryDomain": { "Ref": "SecondaryDomain" },
           "HostedSubdomain": { "Ref": "ChefSubdomain" },
           "BackendEBSID": { "Ref" : "BackendEBS" },
           "EBSMountPath": { "Ref" : "EBSMountPath" },
           "BackupEnable": { "Ref" : "BackupEnable" },
           "RestoreFile": { "Ref" : "RestoreFile" },
-          "Bucket": { "Ref" : "ChefBucket" },
+          "Bucket": {"Fn::If" : ["CreateChefBucket", {"Ref" : "ChefBucket"}, {"Ref" : "ExistingBucket"}]},
           "Cookbook": { "Ref": "Cookbook" },
           "CookbookGit": { "Ref": "CookbookGit" },
           "CookbookGitBranch": { "Ref": "CookbookGitBranch" },
@@ -1070,7 +1116,8 @@
   "Outputs": {
     "ChefBucket" : {
       "Description" : "Bucket that all chef backups will be stored",
-      "Value" : { "Ref": "ChefBucket" }
+      "Value" : { "Ref": "ChefBucket" },
+      "Condition" : "CreateChefBucket"
     }
   }
 }

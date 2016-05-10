@@ -19,6 +19,7 @@
 # ${FE02_DNS} == FE02DNS
 # ${FE02_IP} == FE02IP
 # ${DOMAIN} == HostedZone && ['domain']
+# ${SECONDARY_DOMAIN} == SecondaryDomain
 # ${SUBDOMAIN} == HostedSubdomain
 # ${EBS_ID} == BackendEBSID && ['ebs_volume_id']
 # ${EBS_MOUNT_PATH} == EBSMountPath &&  ['ebs_device']
@@ -27,6 +28,13 @@
 # ${RESTORE_FILE} == RestoreFile && ['backup']['restore_file']
 # ${CHEFDIR} == ChefDir
 # ${S3DIR} == S3Dir
+# ${DB_CHOICE} == DBChoice
+# ${DB_USER} == DBUser
+# ${DB_PASSWORD} == DBPassword
+# ${DB_PORT} == DBPort
+# ${DB_URL} == DBURL
+# ${COOKBOOK_CHOICE} == CookbookChoice
+# ${COOKBOOK_BUCKET} == CookbookBucket
 # ${COOKBOOK} == Cookbook
 # ${COOKBOOK_GIT} == CookbookGit
 # ${COOKBOOK_BRANCH} == CookbookGitBranch
@@ -171,6 +179,10 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
     "citadel": {
         "bucket": "${BUCKET}"
     },
+    "letsencrypt": {
+        "contact": "${SUPPORT_EMAIL}",
+        "endpoint": "${ENDPOINT}"
+    },
     "${COOKBOOK}": {
         "backup": {
             "restore": false,
@@ -234,7 +246,8 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
             "ip_address": "${ANALYTICS_IP}"
         },
         "api_fqdn": "chef.${DOMAIN}",
-        "domain": "${DOMAIN}",
+        "prime_domain": "${DOMAIN}",
+        "secondary_domain": "${SECONDARY_DOMAIN}",
         "stage_subdomain": "${SUBDOMAIN}",
         "ebs_volume_id": "${EBS_ID}",
         "ebs_device": "${EBS_MOUNT_PATH}"
