@@ -119,6 +119,11 @@
       "Default": "",
       "ConstraintDescription": "must match a route53 hosted domain/zone"
     },
+    "SecondaryDomain": {
+      "Type": "String",
+      "Default": "domain.com",
+      "Description": "If including a 2nd manual/non-aws domain (optional)"
+    },
     "HostedSubdomain": {
       "Type": "String",
       "Default": "",
@@ -173,11 +178,6 @@
       "Type": "String",
       "Default": "",
       "Description": "Enter S3 bucket name for all Citadel items"
-    },
-    "BackupBucket": {
-      "Type": "String",
-      "Default": "",
-      "Description": "Enter S3 bucket name for chef backups & primary backened generated items"
     },
     "RestoreFile": {
       "Type": "String",
@@ -372,6 +372,7 @@
                 "export FE02_DNS='", { "Ref" : "FE02DNS" } ,"'\n",
                 "export FE02_IP='", { "Ref" : "FE02IP" } ,"'\n",
                 "export DOMAIN='", { "Ref": "HostedZone" } ,"'\n",
+                "export SECONDARY_DOMAIN='", { "Ref": "SecondaryDomain" } ,"'\n",
                 "export SUBDOMAIN='", { "Ref": "HostedSubdomain" } ,"'\n",
                 "export EBS_ID='", { "Ref" : "BackendEBSID" } ,"'\n",
                 "export EBS_MOUNT_PATH='", { "Ref" : "EBSMountPath" } ,"'\n",
@@ -456,6 +457,7 @@
                 "export FE02_DNS='", { "Ref" : "FE02DNS" } ,"'\n",
                 "export FE02_IP='", { "Ref" : "FE02IP" } ,"'\n",
                 "export DOMAIN='", { "Ref": "HostedZone" } ,"'\n",
+                "export SECONDARY_DOMAIN='", { "Ref": "SecondaryDomain" } ,"'\n",
                 "export SUBDOMAIN='", { "Ref": "HostedSubdomain" } ,"'\n",
                 "export EBS_ID='", { "Ref" : "BackendEBSID" } ,"'\n",
                 "export EBS_MOUNT_PATH='", { "Ref" : "EBSMountPath" } ,"'\n",

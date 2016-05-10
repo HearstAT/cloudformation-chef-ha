@@ -114,6 +114,11 @@
       "Default": "",
       "ConstraintDescription": "must match a route53 hosted domain/zone"
     },
+    "SecondaryDomain": {
+      "Type": "String",
+      "Default": "domain.com",
+      "Description": "If including a 2nd manual/non-aws domain (optional)"
+    },
     "HostedSubdomain": {
       "Type": "String",
       "Default": "",
@@ -138,11 +143,6 @@
       "Type": "String",
       "Default": "",
       "Description": "Enter Filename to restore backup from in backup bucket (Optional)"
-    },
-    "SignupDisable": {
-      "Type": "String",
-      "Default": "",
-      "Description": "Enter True/False for signup disable (false by default)"
     },
     "SupportEmail": {
       "Type": "String",
@@ -200,17 +200,11 @@
         "Default": "",
         "Description": "(External Only) Enter S3 Bucket Name for Cookbook Storage"
     },
-    "SSLCRT": {
+    "Environment": {
         "Type": "String",
         "NoEcho": "true",
         "Default": "",
-        "Description": "Enter SSL certifcate"
-    },
-    "SSLKEY": {
-        "Type": "String",
-        "NoEcho": "true",
-        "Default": "",
-        "Description": "Enter SSL key"
+        "Description": "Enter lets encrypt environment"
     },
     "MailCreds": {
         "Type": "String",
@@ -389,6 +383,8 @@
                 "export FE02_DNS='", { "Ref" : "FE02DNS" } ,"'\n",
                 "export FE02_IP='", { "Ref" : "FE02IP" } ,"'\n",
                 "export DOMAIN='", { "Ref": "HostedZone" } ,"'\n",
+                "export SECONDARY_DOMAIN='", { "Ref": "SecondaryDomain" } ,"'\n",
+                "export ENVIRONMENT='", { "Ref": "Environment" } ,"'\n",
                 "export SUBDOMAIN='", { "Ref": "HostedSubdomain" } ,"'\n",
                 "export EBS_ID='", { "Ref" : "BackendEBSID" } ,"'\n",
                 "export EBS_MOUNT_PATH='", { "Ref" : "EBSMountPath" } ,"'\n",
@@ -406,12 +402,9 @@
                 "export COOKBOOK='", { "Ref" : "Cookbook" } ,"'\n",
                 "export COOKBOOK_GIT='", { "Ref" : "CookbookGit" } ,"'\n",
                 "export COOKBOOK_BRANCH='", { "Ref" : "CookbookGitBranch" } ,"'\n",
-                "export SIGNUP_DISABLE='", { "Ref" : "SignupDisable" } ,"'\n",
                 "export S3DIR='", { "Ref" : "S3Dir" } ,"'\n",
                 "export SUPPORT_EMAIL='", { "Ref" : "SupportEmail" } ,"'\n",
                 "set +xv\n",
-                "export SSL_CERT='", { "Ref" : "SSLCRT" } ,"'\n",
-                "export SSL_KEY='", { "Ref" : "SSLKEY" } ,"'\n",
                 "export NR_LICENSE='", { "Ref" : "NewRelicLicense" } ,"'\n",
                 "export NR_APPNAME='", { "Ref" : "NewRelicAppName" } ,"'\n",
                 "export NR_ENABLE='", { "Ref" : "NewRelicEnable" } ,"'\n",
@@ -489,6 +482,7 @@
                 "export FE02_DNS='", { "Ref" : "FE02DNS" } ,"'\n",
                 "export FE02_IP='", { "Ref" : "FE02IP" } ,"'\n",
                 "export DOMAIN='", { "Ref": "HostedZone" } ,"'\n",
+                "export SECONDARY_DOMAIN='", { "Ref": "SecondaryDomain" } ,"'\n",
                 "export SUBDOMAIN='", { "Ref": "HostedSubdomain" } ,"'\n",
                 "export EBS_ID='", { "Ref" : "BackendEBSID" } ,"'\n",
                 "export EBS_MOUNT_PATH='", { "Ref" : "EBSMountPath" } ,"'\n",
@@ -503,7 +497,6 @@
                 "export COOKBOOK='", { "Ref" : "Cookbook" } ,"'\n",
                 "export COOKBOOK_GIT='", { "Ref" : "CookbookGit" } ,"'\n",
                 "export COOKBOOK_BRANCH='", { "Ref" : "CookbookGitBranch" } ,"'\n",
-                "export SIGNUP_DISABLE='", { "Ref" : "SignupDisable" } ,"'\n",
                 "export SUPPORT_EMAIL='", { "Ref" : "SupportEmail" } ,"'\n",
                 "export MAIL_HOST='", { "Ref" : "MailHost" } ,"'\n",
                 "export MAIL_PORT='", { "Ref" : "MailPort" } ,"'\n",

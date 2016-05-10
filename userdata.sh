@@ -23,7 +23,8 @@
 # ${SUBDOMAIN} == HostedSubdomain
 # ${EBS_ID} == BackendEBSID && ['ebs_volume_id']
 # ${EBS_MOUNT_PATH} == EBSMountPath &&  ['ebs_device']
-# ${BUCKET} ==  && ['s3']['backup_bucket']
+# ${ENVIRONMENT} == Environment
+# ${BUCKET} == ChefBucket || ExternalBucket
 # ${BACKUP_ENABLE} == BackupEnable && ['backup']['enable_backups']
 # ${RESTORE_FILE} == RestoreFile && ['backup']['restore_file']
 # ${CHEFDIR} == ChefDir
@@ -43,8 +44,6 @@
 # ${MAIL_HOST} == MailHost && ['mail']['relayhost']
 # ${MAIL_PORT} == MailPort && ['mail']['relayport']
 # ${MAIL_CREDS} == MailCreds
-# ${SSL_CRT} == SSLCRT
-# ${SSL_KEY} == SSLKEY
 # ${NR_LICENSE} == NewRelicLicense
 # ${NR_APPNAME} == NewRelicAppName
 # ${NR_ENABLE} == NewRelicEnable
@@ -60,20 +59,6 @@
 ###
 
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-
-
-# Conditional Variable Set
-if [ ${DB_CHOICE} == 'internal' ]; then
-    DB_EXT_ENABLE='false'
-else
-    DB_EXT_ENABLE='true'
-fi
-
-if [ ${COOKBOOK_CHOICE} == 'internal' ]; then
-    CB_EXT_ENABLE='false'
-else
-    CB_EXT_ENABLE='true'
-fi
 
 # Install S3FS Dependencies
 sudo apt-get install -y automake autotools-dev g++ git libcurl4-gnutls-dev libfuse-dev libssl-dev libxml2-dev make pkg-config
@@ -160,6 +145,25 @@ if [ ${ROLE} == 'primary' ]; then
     fi
     # Primary Only: Set Chef VIP
     aws ec2 assign-private-ip-addresses --network-interface-id  ${ENI}  --allow-reassignment --private-ip-addresses  ${VIP}  || error_exit 'Failed to set VIP'
+
+    if [ ${ENVIRONMENT} == 'production' ]; then
+        LE_ENDPOINT='https://acme-v01.api.letsencrypt.org'
+    else
+        LE_ENDPOINT='https://acme-staging.api.letsencrypt.org'
+    fi
+
+    # Conditional Variable Set
+    if [ ${DB_CHOICE} == 'internal' ]; then
+        DB_EXT_ENABLE='false'
+    else
+        DB_EXT_ENABLE='true'
+    fi
+
+    if [ ${COOKBOOK_CHOICE} == 'internal' ]; then
+        CB_EXT_ENABLE='false'
+    else
+        CB_EXT_ENABLE='true'
+    fi
 fi
 
 mkdir -p /etc/chef/ohai/hints || error_exit 'Failed to create ohai folder'
@@ -168,6 +172,7 @@ touch /etc/chef/ohai/hints/iam.json || error_exit 'Failed to create iam hint fil
 
 # Create Chef Directory
 mkdir -p ${CHEFDIR}
+mkdir -p /etc/chef
 
 # Set hostname
 hostname  ${DNS}  || error_exit 'Failed to set hostname'
@@ -180,8 +185,8 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
         "bucket": "${BUCKET}"
     },
     "letsencrypt": {
-        "contact": "${SUPPORT_EMAIL}",
-        "endpoint": "${ENDPOINT}"
+        "contact": "mailto:${SUPPORT_EMAIL}",
+        "endpoint": "${LE_ENDPOINT}"
     },
     "${COOKBOOK}": {
         "backup": {
@@ -199,12 +204,12 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
             "relayport": "${MAIL_PORT}"
         },
         "database": {
-            "": ${DB_EXT_ENABLE},
+            "ext_enable": ${DB_EXT_ENABLE},
             "port": "${DB_PORT}",
             "url": "${DB_URL}"
         },
         "cookbook": {
-            "": ${CB_EXT_ENABLE},
+            "ext_enable" ${CB_EXT_ENABLE},
             "bucket": "${COOKBOOK_BUCKET}"
         },
         "s3": {
@@ -254,6 +259,7 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
     },
     "run_list": [
         "recipe[apt-chef]",
+        "recipe[chef-client]",
         "recipe[${COOKBOOK}::${ROLE}]"
     ]
 }
@@ -265,6 +271,31 @@ EOF
 # Primary Only: Copy post install json and swap attribute to true if needed
 if [ ${ROLE} == 'primary' ]; then
   cp ${CHEFDIR}/${ROLE}.json ${CHEFDIR}/${ROLE}_post_restore.json && sed -i 's/\"restore\": false/\"restore\": true/g' ${CHEFDIR}/${ROLE}_post_restore.json
+
+  cp ${CHEFDIR}/${ROLE}.json ${CHEFDIR}/certs.json && sed -i "s/::${ROLE}/::certs/g" ${CHEFDIR}/certs.json
+
+
+cat > /etc/chef/client.rb <<EOF
+cookbook_path "${CHEFDIR}/berks-cookbooks"
+json_attribs "${CHEFDIR}/certs.json"
+chef_zero.enabled
+local_mode true
+chef_zero.port 8899
+EOF
+
+else
+cat > ${CHEFDIR}/runner.json <<EOF
+{"run_list":["recipe[apt-chef]","recipe[chef-client]"]}
+EOF
+
+cat > /etc/chef/client.rb <<EOF
+cookbook_path "${CHEFDIR}/berks-cookbooks"
+json_attribs "${CHEFDIR}/runner.json"
+chef_zero.enabled
+local_mode true
+chef_zero.port 8899
+EOF
+
 fi
 
 # Switch to main directory
