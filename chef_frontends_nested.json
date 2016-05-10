@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Cloudformation Chef Frontend Servers v1.2",
+  "Description": "Cloudformation Chef Frontend Servers v1.3",
   "Parameters": {
     "InstanceType": {
       "Type": "String",

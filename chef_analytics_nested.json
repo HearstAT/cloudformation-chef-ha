@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Cloudformation Chef Analytics Standalone Sever v1.2",
+  "Description": "Cloudformation Chef Analytics Standalone Sever v1.3",
   "Parameters": {
     "InstanceType": {
       "Type": "String",
