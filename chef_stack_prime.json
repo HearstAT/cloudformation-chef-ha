@@ -394,7 +394,7 @@
             },
             {
                 "Label" : { "default": "Chef Configuration" },
-                "Parameters" : ["ChefSubdomain", "AnalyticsSubdomain", "Environment", "SignupDisable", "SupportEmail", "LicenseCount", "ChefDir", "S3Dir", "EBSMountPath", "BackupEnable", "RestoreFile"]
+                "Parameters" : ["ChefSubdomain", "AnalyticsSubdomain", "Environment", "SignupDisable", "SupportEmail", "LicenseCount", "ChefDir", "S3Dir", "EBSMountPath", "BackupEnable", "RestoreFile", "SecondaryDomain"]
             },
             {
                 "Label" : { "default": "Database Configuration" },
