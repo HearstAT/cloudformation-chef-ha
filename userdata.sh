@@ -148,12 +148,6 @@ if [ ${ROLE} == 'primary' ]; then
 
     export SIGNUP_DISABLE='true'
 
-    if [ ${ENVIRONMENT} == 'production' ]; then
-        LE_ENDPOINT='https://acme-v01.api.letsencrypt.org'
-    else
-        LE_ENDPOINT='https://acme-staging.api.letsencrypt.org'
-    fi
-
     # Conditional Variable Set
     if [ ${DB_CHOICE} == 'internal' ]; then
         DB_EXT_ENABLE='false'
@@ -165,6 +159,14 @@ if [ ${ROLE} == 'primary' ]; then
         CB_EXT_ENABLE='false'
     else
         CB_EXT_ENABLE='true'
+    fi
+fi
+
+if [ ${ROLE} == 'frontend' ]; then
+    if [ ${ENVIRONMENT} == 'production' ]; then
+        LE_ENDPOINT='https://acme-v01.api.letsencrypt.org'
+    else
+        LE_ENDPOINT='https://acme-staging.api.letsencrypt.org'
     fi
 fi
 

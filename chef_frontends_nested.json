@@ -64,6 +64,11 @@
       "Type" : "String",
       "Default": ""
     },
+    "Environment": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter lets encrypt environment"
+    },
     "VIP": {
       "Description" : "Enter VIP",
       "Type" : "String",
@@ -371,6 +376,7 @@
                 "export FE01_IP='", { "Ref" : "FE01IP" } ,"'\n",
                 "export FE02_DNS='", { "Ref" : "FE02DNS" } ,"'\n",
                 "export FE02_IP='", { "Ref" : "FE02IP" } ,"'\n",
+                "export ENVIRONMENT='", { "Ref": "Environment" } ,"'\n",
                 "export DOMAIN='", { "Ref": "HostedZone" } ,"'\n",
                 "export SECONDARY_DOMAIN='", { "Ref": "SecondaryDomain" } ,"'\n",
                 "export SUBDOMAIN='", { "Ref": "HostedSubdomain" } ,"'\n",
@@ -456,6 +462,7 @@
                 "export FE01_IP='", { "Ref" : "FE01IP" } ,"'\n",
                 "export FE02_DNS='", { "Ref" : "FE02DNS" } ,"'\n",
                 "export FE02_IP='", { "Ref" : "FE02IP" } ,"'\n",
+                "export ENVIRONMENT='", { "Ref": "Environment" } ,"'\n",
                 "export DOMAIN='", { "Ref": "HostedZone" } ,"'\n",
                 "export SECONDARY_DOMAIN='", { "Ref": "SecondaryDomain" } ,"'\n",
                 "export SUBDOMAIN='", { "Ref": "HostedSubdomain" } ,"'\n",
