@@ -99,25 +99,25 @@ if [ ${ROLE} == 'primary' ]; then
     mkdir -p ${S3DIR}/mail ${S3DIR}/newrelic ${S3DIR}/sumologic ${S3DIR}/db ${S3DIR}/aws
 
     ## AWS Creds
-    echo "${ACCESS_KEY}" | tr -d '\\n' > ${S3DIR}/aws/access_key
-    echo "${SECRET_KEY}" | tr -d '\\n' > ${S3DIR}/aws/secret_key
+    echo "${ACCESS_KEY}" | tr -d '\n' > ${S3DIR}/aws/access_key
+    echo "${SECRET_KEY}" | tr -d '\n' > ${S3DIR}/aws/secret_key
 
     ## DB Creds
     if [ ${DB_CHOICE} == 'external' ]; then
-        echo "${DB_USER}" | tr -d '\\n' > ${S3DIR}/db/username
-        echo "${DB_PASSWORD}" | tr -d '\\n' > ${S3DIR}/db/password
+        echo "${DB_USER}" | tr -d '\n' > ${S3DIR}/db/username
+        echo "${DB_PASSWORD}" | tr -d '\n' > ${S3DIR}/db/password
     fi
 
     ## Mail
-    echo "${MAIL_HOST} ${MAIL_CREDS}" | tr -d '\\n' > ${S3DIR}/mail/creds
+    echo "${MAIL_HOST} ${MAIL_CREDS}" | tr -d '\n' > ${S3DIR}/mail/creds
 
     ## New Relic
-    echo "${NR_LICENSE}" | tr -d '\\n' > ${S3DIR}/newrelic/license
+    echo "${NR_LICENSE}" | tr -d '\n' > ${S3DIR}/newrelic/license
 
     ## Sumologic
-    echo "${SUMO_PASSWORD}" | tr -d '\\n' > ${S3DIR}/sumologic/password
-    echo "${SUMO_ACCESS_ID}" | tr -d '\\n' > ${S3DIR}/sumologic/access_id
-    echo "${SUMO_ACCESS_KEY}" | tr -d '\\n' > ${S3DIR}/sumologic/access_key
+    echo "${SUMO_PASSWORD}" | tr -d '\n' > ${S3DIR}/sumologic/password
+    echo "${SUMO_ACCESS_ID}" | tr -d '\n' > ${S3DIR}/sumologic/access_id
+    echo "${SUMO_ACCESS_KEY}" | tr -d '\n' > ${S3DIR}/sumologic/access_key
 fi
 
 
