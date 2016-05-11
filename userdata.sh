@@ -211,7 +211,7 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
             "url": "${DB_URL}"
         },
         "cookbook": {
-            "ext_enable" ${CB_EXT_ENABLE},
+            "ext_enable": ${CB_EXT_ENABLE},
             "bucket": "${COOKBOOK_BUCKET}"
         },
         "s3": {
