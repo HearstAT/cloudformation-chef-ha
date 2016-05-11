@@ -89,7 +89,7 @@
     },
     "DBPort": {
         "Type": "String",
-        "Default": "",
+        "Default": "5432",
         "Description": "(External Only) Enter DB Port"
     },
     "DBURL": {
@@ -99,7 +99,7 @@
     },
     "ExistingBucketChoice": {
         "Type": "String",
-        "Default": "false",
+        "Default": "true",
         "AllowedValues": ["true", "false"],
         "Description": "Choose to use an existing bucket from previous installation"
     },
@@ -118,6 +118,23 @@
         "Type": "String",
         "Default": "",
         "Description": "(External Only) Enter S3 Bucket Name for Cookbook Storage"
+    },
+    "ExistingInstall": {
+        "Type": "String",
+        "Default": "true",
+        "AllowedValues": ["true", "false"],
+        "Description": "Choose only if existing install (i.e.; Previous External DB and Existing S3 Bucket)"
+    },
+    "ExistingIAMUser": {
+        "Type": "String",
+        "Default": "true",
+        "AllowedValues": ["true", "false"],
+        "Description": "Choose to use an existing IAM user rather than creating one"
+    },
+    "IAMUser": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Only Required if ExisitingIAMUser is set to true"
     },
     "MailCreds": {
         "Type": "String",
@@ -174,7 +191,7 @@
     "Environment": {
         "Description" : "Choose which environment you want to enable for Letsencrypt Certs",
         "Type" : "String",
-        "Default": "production",
+        "Default": "stage",
         "AllowedValues": ["production", "stage"]
     },
     "S3Dir": {
@@ -393,6 +410,10 @@
                 "Parameters" : ["ExistingBucketChoice", "ExistingBucket"]
             },
             {
+                "Label" : { "default": "Re-Deploy Configuration (When Using Existing Items)" },
+                "Parameters" : ["ExistingInstall", "ExistingIAMUser", "IAMUser"]
+            },
+            {
                 "Label" : { "default": "Chef Configuration" },
                 "Parameters" : ["ChefSubdomain", "AnalyticsSubdomain", "Environment", "SignupDisable", "SupportEmail", "LicenseCount", "ChefDir", "S3Dir", "EBSMountPath", "BackupEnable", "RestoreFile", "SecondaryDomain"]
             },
@@ -499,7 +520,8 @@
   },
   "Conditions" : {
     "CreateChefBucket" : {"Fn::Equals" : [{"Ref" : "ExistingBucketChoice"}, "false"]},
-    "ExternalCookbooks" : {"Fn::Equals" : [{"Ref" : "CookbookChoice"}, "external"]}
+    "ExternalCookbooks" : {"Fn::Equals" : [{"Ref" : "CookbookChoice"}, "external"]},
+    "ExistingIAM" : {"Fn::Equals" : [{"Ref" : "ExistingIAMUser"}, "true"]}
   },
   "Resources" : {
     "PublicSubnetA" : {
@@ -597,6 +619,7 @@
     },
     "ChefServerUser" : {
       "Type" : "AWS::IAM::User",
+      "Condition" : "ExistingIAM",
       "Properties" : {
         "Path": "/",
         "Policies": [ {
@@ -653,8 +676,9 @@
     },
     "HostKeys" : {
       "Type" : "AWS::IAM::AccessKey",
+      "Condition" : "ExistingIAM",
       "Properties" : {
-        "UserName" : { "Ref": "ChefServerUser" }
+        "UserName" : {"Fn::If" : ["ExistingIAM", {"Ref" : "IAMUser"}, {"Ref" : "ChefServerUser"}]}
       }
     },
     "BackendPrimaryENI" : {
@@ -839,6 +863,7 @@
           "EBSMountPath": { "Ref" : "EBSMountPath" },
           "BackupEnable": { "Ref" : "BackupEnable" },
           "RestoreFile": { "Ref" : "RestoreFile" },
+          "ExistingInstall": { "Ref" : "ExistingInstall" },
           "Bucket": {"Fn::If" : ["CreateChefBucket", {"Ref" : "ChefBucket"}, {"Ref" : "ExistingBucket"}]},
           "Cookbook": { "Ref": "Cookbook" },
           "CookbookGit": { "Ref": "CookbookGit" },

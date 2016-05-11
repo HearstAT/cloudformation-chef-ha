@@ -200,6 +200,11 @@
         "Default": "",
         "Description": "(External Only) Enter S3 Bucket Name for Cookbook Storage"
     },
+    "ExistingInstall": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Only if using previous Chef-Bucket and External DB"
+    },
     "MailCreds": {
         "Type": "String",
         "NoEcho": "true",
@@ -391,6 +396,7 @@
                 "export BUCKET='", { "Ref" : "Bucket" } ,"'\n",
                 "export BACKUP_ENABLE='", { "Ref" : "BackupEnable" } ,"'\n",
                 "export RESTORE_FILE='", { "Ref" : "RestoreFile" } ,"'\n",
+                "export EXISTING_INSTALL='", { "Ref" : "ExistingInstall" } ,"'\n",
                 "export CHEFDIR='", { "Ref" : "ChefDir" } ,"'\n",
                 "export COOKBOOK='", { "Ref" : "Cookbook" } ,"'\n",
                 "export COOKBOOK_GIT='", { "Ref" : "CookbookGit" } ,"'\n",
@@ -481,6 +487,7 @@
                 "export EBS_MOUNT_PATH='", { "Ref" : "EBSMountPath" } ,"'\n",
                 "export BACKUP_ENABLE='", { "Ref" : "BackupEnable" } ,"'\n",
                 "export RESTORE_FILE='", { "Ref" : "RestoreFile" } ,"'\n",
+                "export EXISTING_INSTALL='", { "Ref" : "ExistingInstall" } ,"'\n",
                 "export CHEFDIR='", { "Ref" : "ChefDir" } ,"'\n",
                 "export BUCKET='", { "Ref" : "Bucket" } ,"'\n",
                 "export NR_APPNAME='", { "Ref" : "NewRelicAppName" } ,"'\n",

@@ -27,6 +27,7 @@
 # ${BUCKET} == ChefBucket || ExternalBucket
 # ${BACKUP_ENABLE} == BackupEnable && ['backup']['enable_backups']
 # ${RESTORE_FILE} == RestoreFile && ['backup']['restore_file']
+# ${EXISTING_INSTALL} == ExistingInstall
 # ${CHEFDIR} == ChefDir
 # ${S3DIR} == S3Dir
 # ${DB_CHOICE} == DBChoice
@@ -202,6 +203,9 @@ cat > "${CHEFDIR}/${ROLE}.json" << EOF
         "manage": {
             "signupdisable": ${SIGNUP_DISABLE},
             "supportemail": "${SUPPORT_EMAIL}"
+        },
+        "install": {
+            "existing": ${EXISTING_INSTALL}
         },
         "mail": {
             "relayhost": "${MAIL_HOST}",
