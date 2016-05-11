@@ -146,6 +146,8 @@ if [ ${ROLE} == 'primary' ]; then
     # Primary Only: Set Chef VIP
     aws ec2 assign-private-ip-addresses --network-interface-id  ${ENI}  --allow-reassignment --private-ip-addresses  ${VIP}  || error_exit 'Failed to set VIP'
 
+    export SIGNUP_DISABLE='true'
+
     if [ ${ENVIRONMENT} == 'production' ]; then
         LE_ENDPOINT='https://acme-v01.api.letsencrypt.org'
     else
