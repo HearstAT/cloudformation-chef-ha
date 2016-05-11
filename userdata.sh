@@ -273,9 +273,10 @@ EOF
 # Primary Only: Copy post install json and swap attribute to true if needed
 if [ ${ROLE} == 'primary' ]; then
   cp ${CHEFDIR}/${ROLE}.json ${CHEFDIR}/${ROLE}_post_restore.json && sed -i 's/\"restore\": false/\"restore\": true/g' ${CHEFDIR}/${ROLE}_post_restore.json
+fi
 
-  cp ${CHEFDIR}/${ROLE}.json ${CHEFDIR}/certs.json && sed -i "s/::${ROLE}/::certs/g" ${CHEFDIR}/certs.json
-
+if [ ${ROLE} == 'frontend' ]; then
+cp ${CHEFDIR}/${ROLE}.json ${CHEFDIR}/certs.json && sed -i "s/::${ROLE}/::certs/g" ${CHEFDIR}/certs.json
 
 cat > /etc/chef/client.rb <<EOF
 cookbook_path "${CHEFDIR}/berks-cookbooks"
@@ -286,6 +287,7 @@ chef_zero.port 8899
 EOF
 
 else
+
 cat > ${CHEFDIR}/runner.json <<EOF
 {"run_list":["recipe[apt-chef]","recipe[chef-client]"]}
 EOF
