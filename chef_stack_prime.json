@@ -676,7 +676,6 @@
     },
     "HostKeys" : {
       "Type" : "AWS::IAM::AccessKey",
-      "Condition" : "ExistingIAM",
       "Properties" : {
         "UserName" : {"Fn::If" : ["ExistingIAM", {"Ref" : "IAMUser"}, {"Ref" : "ChefServerUser"}]}
       }
