@@ -174,6 +174,10 @@ if [ ${ROLE} == 'frontend' ]; then
     fi
 fi
 
+if [ -z ${EXISTING_INSTALL} ]; then
+    export EXISTING_INSTALL=false
+fi
+
 mkdir -p /etc/chef/ohai/hints || error_exit 'Failed to create ohai folder'
 touch /etc/chef/ohai/hints/ec2.json || error_exit 'Failed to create ec2 hint file'
 touch /etc/chef/ohai/hints/iam.json || error_exit 'Failed to create iam hint file'
