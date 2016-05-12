@@ -147,8 +147,6 @@ if [ ${ROLE} == 'primary' ]; then
     # Primary Only: Set Chef VIP
     aws ec2 assign-private-ip-addresses --network-interface-id  ${ENI}  --allow-reassignment --private-ip-addresses  ${VIP}  || error_exit 'Failed to set VIP'
 
-    export SIGNUP_DISABLE='true'
-
     # Conditional Variable Set
     if [ ${DB_CHOICE} == 'internal' ]; then
         DB_EXT_ENABLE='false'
@@ -161,6 +159,10 @@ if [ ${ROLE} == 'primary' ]; then
     else
         CB_EXT_ENABLE='true'
     fi
+fi
+
+if [ ${ROLE} != 'frontend' ]; then
+    export SIGNUP_DISABLE='false'
 fi
 
 if [ ${ROLE} == 'frontend' ]; then
