@@ -147,18 +147,19 @@ if [ ${ROLE} == 'primary' ]; then
     # Primary Only: Set Chef VIP
     aws ec2 assign-private-ip-addresses --network-interface-id  ${ENI}  --allow-reassignment --private-ip-addresses  ${VIP}  || error_exit 'Failed to set VIP'
 
-    # Conditional Variable Set
-    if [ ${DB_CHOICE} == 'internal' ]; then
-        DB_EXT_ENABLE='false'
-    else
-        DB_EXT_ENABLE='true'
-    fi
+fi
 
-    if [ ${COOKBOOK_CHOICE} == 'internal' ]; then
-        CB_EXT_ENABLE='false'
-    else
-        CB_EXT_ENABLE='true'
-    fi
+# Conditional Variable Set
+if [ ${DB_CHOICE} == 'external' ]; then
+    DB_EXT_ENABLE='true'
+else
+    DB_EXT_ENABLE='false'
+fi
+
+if [ ${COOKBOOK_CHOICE} == 'external' ]; then
+    CB_EXT_ENABLE='true'
+else
+    CB_EXT_ENABLE='false'
 fi
 
 if [ ${ROLE} != 'frontend' ]; then
