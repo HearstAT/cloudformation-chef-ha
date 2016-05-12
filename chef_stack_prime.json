@@ -125,7 +125,7 @@
         "AllowedValues": ["true", "false"],
         "Description": "Choose only if existing install (i.e.; Previous External DB and Existing S3 Bucket)"
     },
-    "ExistingIAMUser": {
+    "ExistingIAM": {
         "Type": "String",
         "Default": "true",
         "AllowedValues": ["true", "false"],
@@ -134,7 +134,19 @@
     "IAMUser": {
         "Type": "String",
         "Default": "",
-        "Description": "Only Required if ExisitingIAMUser is set to true"
+        "Description": "Only Required if ExisitingIAM is set to true"
+    },
+    "AccessKey": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Only Required if ExisitingIAM is set to true"
+    },
+    "SecretKey": {
+        "Type": "String",
+        "NoEcho": "true",
+        "Default": "",
+        "Description": "Only Required if ExisitingIAM is set to true"
     },
     "MailCreds": {
         "Type": "String",
@@ -268,8 +280,6 @@
         "Type": "String",
         "Default": "t2.medium",
         "AllowedValues": [
-            "t2.micro",
-            "t2.small",
             "t2.medium",
             "m3.medium",
             "m3.large",
@@ -311,8 +321,6 @@
         "Type": "String",
         "Default": "t2.medium",
         "AllowedValues": [
-            "t2.micro",
-            "t2.small",
             "t2.medium",
             "m3.medium",
             "m3.large",
@@ -354,9 +362,6 @@
         "Type": "String",
         "Default": "c4.large",
         "AllowedValues": [
-            "t2.micro",
-            "t2.small",
-            "t2.medium",
             "m3.medium",
             "m3.large",
             "m3.xlarge",
@@ -411,7 +416,7 @@
             },
             {
                 "Label" : { "default": "Re-Deploy Configuration (When Using Existing Items)" },
-                "Parameters" : ["ExistingInstall", "ExistingIAMUser", "IAMUser"]
+                "Parameters" : ["ExistingInstall", "ExistingIAM", "IAMUser", "AccessKey", "SecretKey"]
             },
             {
                 "Label" : { "default": "Chef Configuration" },
@@ -446,10 +451,6 @@
 },
 "Mappings" : {
   "AWSInstanceType2Arch" : {
-    "t1.micro"    : { "Arch" : "HVM64"  },
-    "t2.nano"     : { "Arch" : "HVM64"  },
-    "t2.micro"    : { "Arch" : "HVM64"  },
-    "t2.small"    : { "Arch" : "HVM64"  },
     "t2.medium"   : { "Arch" : "HVM64"  },
     "t2.large"    : { "Arch" : "HVM64"  },
     "m1.small"    : { "Arch" : "HVM64"  },
@@ -521,7 +522,7 @@
   "Conditions" : {
     "CreateChefBucket" : {"Fn::Equals" : [{"Ref" : "ExistingBucketChoice"}, "false"]},
     "ExternalCookbooks" : {"Fn::Equals" : [{"Ref" : "CookbookChoice"}, "external"]},
-    "ExistingIAM" : {"Fn::Equals" : [{"Ref" : "ExistingIAMUser"}, "true"]}
+    "ExistingIAM" : {"Fn::Equals" : [{"Ref" : "ExistingIAM"}, "true"]}
   },
   "Resources" : {
     "PublicSubnetA" : {
@@ -676,8 +677,9 @@
     },
     "HostKeys" : {
       "Type" : "AWS::IAM::AccessKey",
+      "Condition" : "ExistingIAM",
       "Properties" : {
-        "UserName" : {"Fn::If" : ["ExistingIAM", {"Ref" : "IAMUser"}, {"Ref" : "ChefServerUser"}]}
+        "UserName" : {"Ref" : "ChefServerUser"}
       }
     },
     "BackendPrimaryENI" : {
@@ -841,8 +843,8 @@
           "SSHSecurityGroup" : { "Ref": "SSHSecurityGroup" },
           "VPC": { "Ref": "VPC" },
           "Subnet": { "Ref": "PrivateSubnet" },
-          "AccessKey": { "Ref": "HostKeys" },
-          "SecretKey": { "Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ] },
+          "AccessKey": {"Fn::If" : ["ExistingIAM", {"Ref" : "AccessKey"}, { "Ref" : "HostKeys"}]},
+          "SecretKey": {"Fn::If" : ["ExistingIAM", {"Ref" : "SecretKey"}, { "Fn::GetAtt" : [ "HostKeys", "SecretAccessKey" ] }]},
           "PrimaryENI": { "Ref": "BackendPrimaryENI" },
           "FailoverENI": { "Ref": "BackendFailoverENI" },
           "VIP": { "Ref": "BackendVIP" },
